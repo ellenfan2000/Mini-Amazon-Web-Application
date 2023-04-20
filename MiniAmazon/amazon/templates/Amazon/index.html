@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- <meta http-equiv="X-UA-Compatible" content="IE=edge"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Amazon</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+</head>
+<body>
+<style>
+   /* table {text-align: center;border: 1px solid black;width: 60%}
+   table,th,td {border: 1px solid black;}
+   .center{margin-left:auto;margin-right:auto;}
+   h1 {text-align: center;}
+    h3 {text-align: center;}
+     p {text-align: center;} 
+    div {text-align: center;} 
+    h3 {text-align: center;} */
+    /* input{width:40%; text-align: left;} */
+    /* form{text-align: left;}
+    input{width:60%; text-align: left;}
+    .container{margin-left: 30px;} */
+ </style>
+    <div class="container">
+        {%if user.is_authenticated%}
+            <br>
+            <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                <a href="/email_update" class="btn btn-light btn-sm">Change Email Address</a>
+                <a href="/password_update" class="btn btn-light btn-sm">Change Password</a>
+                <a href="/logout" class="btn btn-light btn-sm">Log out</a>
+            </div>
+        {%endif%}
+    {% block content %}
+
+    {% endblock %} 
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js" integrity="sha384-mQ93GR66B00ZXjt0YO5KlohRA5SY2XofN4zfuZxLkoj1gXtW8ANNCe9d5Y3eG5eD" crossorigin="anonymous"></script>     
+</body>
+</html>
