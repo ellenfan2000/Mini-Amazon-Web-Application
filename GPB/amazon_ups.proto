@@ -1,3 +1,4 @@
+syntax = "proto2";
 message UTAConnect{
     required int64 worldid = 1;
 }
@@ -50,7 +51,7 @@ message AUErr{
 }
 
 message ATUCommands{
-    repeated ATURequestPickUp topickup = 1;
+    repeated ATURequestPickup topickup = 1;
     repeated ATULoaded loaded = 2;
     repeated AUErr err = 3;
     repeated int64 acks = 4;
@@ -58,9 +59,8 @@ message ATUCommands{
 
 message UTACommands{
     repeated UTAArrived arrive = 1;
-    repeated UTARespondPickUp picked = 2;
-    repeated UTAOutDelivery todeliver = 3;
-    repeated UTADelivered delivered = 4
-    repeated AUErr err = 5;
-    repeated int64 acks = 6;
+    repeated UTAOutDelivery todeliver = 2;
+    repeated UTADelivered delivered = 3;
+    repeated AUErr err = 4;
+    repeated int64 acks = 5;
 }
