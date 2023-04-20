@@ -78,12 +78,12 @@ WSGI_APPLICATION = 'MiniAmazon.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'Amazon',
         'USER': 'postgres',
         'PASSWORD': 'passw0rd',
         'HOST': '127.0.0.1',
-        'PORT': 23456,
+        'PORT': 5432,
 
     }
 }
