@@ -15,7 +15,7 @@ message Desti_loc{
 message ATURequestPickup{
     required string product_name = 1;
     required int64 packageid = 2;
-    optional int64 ups_id = 3;
+    optional string ups_account = 3;
     required int64 whid = 4;
     required Desti_loc destination = 5;
     required int64 seqnum = 6;

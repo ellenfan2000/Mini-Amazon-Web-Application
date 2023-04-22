@@ -56,7 +56,7 @@ class Order(Base):
     id = Column(Integer, primary_key = True, autoincrement=True)
     buyer = Column(Integer, ForeignKey('auth_user.id'))
     product = Column(Integer, ForeignKey('product.id'))
-    status = Column(String, CheckConstraint("status IN ('Preparing', 'Shipping', 'Arrived')"))
+    status = Column(String, CheckConstraint("status IN ('packing', 'packed', 'loading', 'loaded', 'delivering', 'delivered')"))
     package = Column(Integer, ForeignKey('package.id'))
 
 def init():
