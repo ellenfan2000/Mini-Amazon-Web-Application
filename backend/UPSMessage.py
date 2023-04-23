@@ -3,8 +3,8 @@ from google.protobuf.internal.encoder import _EncodeVarint
 import socket
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import GPB.amazon_ups_pb2 as UPS
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import amazon_ups_pb2 as UPS
 import socketUtils
 
 seqnum = 0
@@ -48,7 +48,7 @@ def create_RequestPickUp(pn, pkid, whid, dest, uacc = None):
 '''
 message ATULoaded{
     required int64 packageid = 1;
-    optional int64 truckid = 2;
+    required int64 truckid = 2;
     required int64 seqnum = 3;
 }
 '''

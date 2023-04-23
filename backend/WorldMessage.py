@@ -3,8 +3,8 @@ from google.protobuf.internal.encoder import _EncodeVarint
 import socket
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import GPB.world_amazon_pb2 as WORLD
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import world_amazon_pb2 as WORLD
 import socketUtils
 
 seqnum = 0
@@ -21,6 +21,7 @@ def create_Aproduct(id, desc, count):
     product.id = id
     product.description = desc
     product.count = count
+    return product
 
 '''
 message APack{
@@ -36,6 +37,7 @@ def create_APack(whnum, shipid, *products):
     pack.shipid = shipid
 
     # concurrent issue
+    global seqnum
     seqnum += 1
     pack.seqnum = seqnum
     for p in products:
@@ -56,6 +58,7 @@ def create_APurchaseMore(whnum, *products):
     for p in products:
         purchase.things.append(p)
     # concurrent issue
+    global seqnum
     seqnum += 1
     purchase.seqnum = seqnum
     return purchase
@@ -76,6 +79,7 @@ def create_APutOnTruck(whnum, truckid, shipid):
     truck.shipid = shipid
 
     # concurrent issue
+    global seqnum
     seqnum += 1
     truck.seqnum = seqnum
     return truck
@@ -90,11 +94,10 @@ def create_AQuery(pkid):
     query = WORLD.AQuery()
     query.packageid = pkid
     # concurrent issue
+    global seqnum
     seqnum += 1
     query.seqnum = seqnum
     return query
-
-
 
 
 def connect_to_World(world_socket,wordid,numwh):
@@ -109,10 +112,30 @@ def connect_to_World(world_socket,wordid,numwh):
         socketUtils.send_message(world_socket, connect)
         response_str = socketUtils.recv_message(world_socket)
         response.ParseFromString(response_str)
+        print(response.result)
         if(response.result == "connected!"):
             break
         else:
             print(response.result)
+
+
+def init_world(world_socket):
+    command = WORLD.ACommands()
+    command.buy.append(create_APurchaseMore(0,create_Aproduct(1, "Kindle Paperwhite (8 GB)", 10), create_Aproduct(2, "LG 34\" LED Monitor", 10), create_Aproduct(2, "Apple AirPods Wireless Earbuds", 10)))
+    command.buy.append(create_APurchaseMore(1,create_Aproduct(4, "WUZHOU Tulip Plush Toy", 10), create_Aproduct(5, "Jellycat Amuseables Cloud Plush", 10)))
+    command.buy.append(create_APurchaseMore(2,create_Aproduct(6, "Women's Open Front Knit Coat", 10), create_Aproduct(7, "Men's Notch Lapel Double Trench Coat", 10)))
+   
+    command.disconnect = False
+    socketUtils.send_message(world_socket, command)
+
+    world_reponse = WORLD.AResponses()
+    world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+    # if(world_reponse.HasField('arrived')):
+    for i in world_reponse.arrived:
+        print("Seqnums are " + str(i.seqnum))
+        
+    for i in world_reponse.error:
+        print(i.err)
 
 
 
