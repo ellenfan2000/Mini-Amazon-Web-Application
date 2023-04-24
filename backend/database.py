@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, mapper
 from datetime import datetime
 from sqlalchemy.engine import URL
 from sqlalchemy import Table, create_engine, MetaData, text, inspect
-from sqlalchemy import Column, Integer, Text, Float, ForeignKey, String, CheckConstraint
+from sqlalchemy import Column, Integer, Text, Float, ForeignKey, String, CheckConstraint, LargeBinary
 from sqlalchemy import Enum, Float, PrimaryKeyConstraint, DateTime, func
 from sqlalchemy.orm import relationship, declarative_base, subqueryload
 
@@ -36,8 +36,11 @@ class Products(Base):
     __tablename__ = "product"
     
     id = Column(Integer, primary_key = True, autoincrement=True)
-    description = Column(Text)
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable = True)
+    # picture = Column(LargeBinary)
     price = Column(Float)
+    category = Column(Text, nullable = True)
     inventory = Column(Integer)
     warehouse = Column(Integer, ForeignKey('warehouse.id'))
     
@@ -56,14 +59,16 @@ class Order(Base):
     id = Column(Integer, primary_key = True, autoincrement=True)
     buyer = Column(Integer, ForeignKey('auth_user.id'))
     product = Column(Integer, ForeignKey('product.id'))
-    status = Column(String, CheckConstraint("status IN ('Preparing', 'Shipping', 'Arrived')"))
+    status = Column(String, CheckConstraint("status IN ('packing', 'packed', 'loading', 'loaded', 'delivering', 'delivered')"))
     package = Column(Integer, ForeignKey('package.id'))
+    rate = Column(Integer, nullable=True)
+    comment = Column(Text)
 
-def init():
+def initDataBase():
     # db_url = f"postgresql+psycopg2://postgres:passw0rd@db:5432/Amazon"
     db_url = f"postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
     engine = create_engine(db_url)
-    # Base.metadata.drop_all(engine)
+    Base.metadata.drop_all(engine, [Warehouse.__table__, Products.__table__, Package.__table__, Order.__table__])
     Base.metadata.create_all(engine, checkfirst=True)
     
     return engine
@@ -72,5 +77,6 @@ def getEngine():
     # db_url = f"postgresql+psycopg2://postgres:passw0rd@db:5432/Amazon"
     db_url = f"postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
     engine = create_engine(db_url)
+
     return engine
     
