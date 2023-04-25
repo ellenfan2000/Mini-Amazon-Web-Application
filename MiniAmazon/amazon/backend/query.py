@@ -1,6 +1,6 @@
-import WorldMessage
-import UPSMessage
-from database import *
+# import WorldMessage
+# import UPSMessage
+from .database import *
 
 engine = getEngine()
 Session = sessionmaker(bind=engine)

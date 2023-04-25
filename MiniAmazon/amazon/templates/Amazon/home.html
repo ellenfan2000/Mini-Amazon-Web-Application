@@ -15,7 +15,23 @@
     <hr class="mt-0 mb-4">
     <p>Welcome, {{user.username}} ! We are happy to Serve you!</p>
     <br>
+    <caption>Recommended Products</caption> 
+    <table>
+        {% for r in recommends.all %} 
+            <tr>
+                <td>
+                    {{r.name}}
+                </td>
+                <td>
+                    Average Rate: {{r.avg_rate}}/5
+                </td>
+                <td>
+                    Details
+                </td>
+            </tr>
 
+        {% endfor %}
+    </table>
     {%else%}
     <h1>
         <p>Welcome to Mini Amazon!</p>

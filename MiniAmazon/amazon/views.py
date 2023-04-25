@@ -11,9 +11,16 @@ from django.conf import settings
 from django.contrib.auth.views import PasswordChangeView
 from django.contrib.messages.views import SuccessMessageMixin
 # from django.db.models import Q
+from .backend.query import *
+from .backend.request import *
 
+
+'''
+Home page to show info and recommend
+'''
 def home(request):      
-    return render(request = request, template_name = "Amazon/home.html")
+    recommends = get_recommend()
+    return render(request = request, template_name = "Amazon/home.html",context={"recommends":recommends})
 
 '''
 register a new user
@@ -56,3 +63,6 @@ def email_update(request):
                 "Amazon/update_email.html",
                 {'form': form}) 
 
+'''
+
+'''
