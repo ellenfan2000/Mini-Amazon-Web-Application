@@ -24,6 +24,7 @@ class User(Base):
     is_active = Column(Integer)
     date_joined = Column(String(40))
 
+
 class Warehouse(Base):
     __tablename__ ="warehouse"
 
@@ -42,27 +43,32 @@ class Products(Base):
     price = Column(Float)
     category = Column(Text, nullable = True)
     inventory = Column(Integer)
-    warehouse = Column(Integer, ForeignKey('warehouse.id'))
+    warehouse_id = Column(Integer, ForeignKey('warehouse.id'))
+    warehouse = relationship('Warehouse', backref="product_warehouse_id")
     
-class Package(Base):
-    __tablename__ = "package"
-
-    id = Column(Integer, primary_key = True, autoincrement=True)
-    packageID = Column(Integer, unique=True)
-    warehouse = Column(Integer, ForeignKey('warehouse.id'))
-    address_x = Column(Integer, nullable=False)
-    address_y = Column(Integer, nullable=False)
-
 class Order(Base):
     __tablename__ = "order"
 
     id = Column(Integer, primary_key = True, autoincrement=True)
     buyer = Column(Integer, ForeignKey('auth_user.id'))
-    product = Column(Integer, ForeignKey('product.id'))
+    customer = relationship('User')
+    product_id = Column(Integer, ForeignKey('product.id'))
+    product = relationship('Products', backref="order_product_id")
     status = Column(String, CheckConstraint("status IN ('packing', 'packed', 'loading', 'loaded', 'delivering', 'delivered')"))
-    package = Column(Integer, ForeignKey('package.id'))
+    package = Column(Integer, unique=True)
     rate = Column(Integer, nullable=True)
     comment = Column(Text)
+    
+class Package(Base):
+    __tablename__ = "package"
+
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    packageID = Column(Integer, ForeignKey('order.package') )
+    order = relationship('Order')
+    warehouse_id = Column(Integer, ForeignKey('warehouse.id'))
+    order = relationship('Warehouse')
+    address_x = Column(Integer, nullable=False)
+    address_y = Column(Integer, nullable=False)
 
 def initDataBase():
     # db_url = f"postgresql+psycopg2://postgres:passw0rd@db:5432/Amazon"
