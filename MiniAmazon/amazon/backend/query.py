@@ -1,6 +1,9 @@
 # import WorldMessage
 # import UPSMessage
-from .database import *
+try:
+    from .database import *
+except:
+    from database import *
 
 engine = getEngine()
 Session = sessionmaker(bind=engine)
