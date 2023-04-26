@@ -1,0 +1,87 @@
+import os
+import sys
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+# from backend.database import *
+from amazon.backend.database import *
+from amazon.backend import socketUtils, UPSMessage, WorldMessage, request
+from amazon.backend import amazon_ups_pb2 as UPS
+from amazon.backend import world_amazon_pb2 as World
+import socket
+
+
+def initServer(engine, ups_socket, world_socket):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    warehouses = [Warehouse(id = 0, x = 1, y = 1),
+                  Warehouse(id = 1, x = 2, y = 2),
+                  Warehouse(id = 2, x = 3, y = 3)]
+    
+    products =[Products(id = 0, name = "Kindle Paperwhite (8 GB)", price =139.99, category = "Digital", inventory = 500, warehouse_id= 0),
+               Products(id = 1, name = "LG 34\" LED Monitor", price = 319.99, category = "Digital", inventory = 200, warehouse_id= 0),
+               Products(id = 2, name = "WUZHOU Tulip Plush Toy", price = 16.59, category ="Toy", inventory = 269, warehouse_id= 1),
+               Products(id = 3, name = "Jellycat Amuseables Cloud Plush", price = 39.99, category = "Top", inventory = 340, warehouse_id= 1),
+               Products(id = 4, name = "Women's Open Front Knit Coat", price = 69.99, category = "Cloth", inventory = 189, warehouse_id= 2),
+               Products(id = 5, name = "Men's Notch Lapel Double Trench Coat", price = 79.99, category = "Cloth", inventory = 230, warehouse_id= 2)
+               ]
+    
+    # uconnect= UPS.UTAConnect()
+    # uconnect.ParseFromString(socketUtils.recv_message(ups_socket))
+
+    WorldMessage.connect_to_World(world_socket,1,warehouses)
+      # WorldMessage.connect_to_World(world_socket,uconnect.worldid,warehouses)
+    for wh in warehouses:
+        session.add(wh)
+    session.commit()
+
+    WorldMessage.init_world(world_socket, products)
+    for p in products:
+        session.add(p)
+    session.commit()
+
+def handle_world_response():
+    pass
+
+
+def handle_ups_response():
+    pass
+
+'''
+    protoc -I=./ --python_out=./ amazon_ups.proto
+'''
+if __name__ == '__main__':
+    engine = initDataBase()
+
+    print("database initialized")
+    # ups_hostname = "0.0.0.0"
+    # ups_socket = socketUtils.socket_connect(ups_hostname, 32345)
+
+    world_hostname = "0.0.0.0"
+    world_socket = socketUtils.socket_connect(world_hostname, 23456)
+    initServer(engine, 0, world_socket)
+
+    orders = [Order(buyer = 2, product_id = 0, amount = 1, status = 'packed', package = 100, rate = 1), 
+              Order(buyer = 2, product_id = 1, amount = 1, status = 'packed', package = 200, rate = 3), 
+              Order(buyer = 2, product_id = 2, amount = 1, status = 'packed', package = 300, rate = None), 
+              Order(buyer = 2, product_id = 3, amount = 1, status = 'packed', package = 400, rate = 5), 
+              Order(buyer = 1, product_id = 4, amount = 1, status = 'packed', package = 500, rate = 2), 
+              Order(buyer = 1, product_id = 5, amount = 1, status = 'packed', package = 600, rate = 6), 
+              Order(buyer = 1, product_id = 0, amount = 1, status = 'packed', package = 700, rate = 8), 
+              Order(buyer = 1, product_id = 1, amount = 1, status = 'packed', package = 800, rate = 1), 
+              Order(buyer = 1, product_id = 2, amount = 1, status = 'packed', package = 900, rate = 0), 
+              ]
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    for o in orders:
+        session.add(o)
+    session.commit()
+    # Session = sessionmaker(bind=engine)
+
+    # # create a session and query the data
+    # session = Session()
+    # users = session.query(User).all()
+
+    # # print the usernames of all users
+    # for user in users:
+    #     print(user.username)

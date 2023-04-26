@@ -1,9 +1,6 @@
 from google.protobuf.internal.decoder import _DecodeVarint32
 from google.protobuf.internal.encoder import _EncodeVarint
 import socket
-import os
-import sys
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import world_amazon_pb2 as WORLD
 import socketUtils
 
@@ -122,23 +119,22 @@ def connect_to_World(world_socket,wordid,warehouses):
 
 def init_world(world_socket, products):
     command = WORLD.ACommands()
-    for p in products:
-        command.buy.append(create_APurchaseMore(p.warehouse, create_Aproduct(p.id, p.name, p.inventory)))
-    # command.buy.append(create_APurchaseMore(0,create_Aproduct(1, "Kindle Paperwhite (8 GB)", 10), create_Aproduct(2, "LG 34\" LED Monitor", 10), create_Aproduct(2, "Apple AirPods Wireless Earbuds", 10)))
-    # command.buy.append(create_APurchaseMore(1,create_Aproduct(4, "WUZHOU Tulip Plush Toy", 10), create_Aproduct(5, "Jellycat Amuseables Cloud Plush", 10)))
-    # command.buy.append(create_APurchaseMore(2,create_Aproduct(6, "Women's Open Front Knit Coat", 10), create_Aproduct(7, "Men's Notch Lapel Double Trench Coat", 10)))
-   
-    command.disconnect = False
-    socketUtils.send_message(world_socket, command)
+    while True:
+        for p in products:
+            command.buy.append(create_APurchaseMore(p.warehouse_id, create_Aproduct(p.id, p.name, p.inventory)))
 
-    world_reponse = WORLD.AResponses()
-    world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
-    # if(world_reponse.HasField('arrived')):
-    for i in world_reponse.arrived:
-        print("Seqnums are " + str(i.seqnum))
-        
-    for i in world_reponse.error:
-        print(i.err)
+        command.disconnect = False
+        socketUtils.send_message(world_socket, command)
+
+        world_reponse = WORLD.AResponses()
+        world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+        # if(world_reponse.HasField('arrived')):
+        for i in world_reponse.arrived:
+            print("Seqnums are " + str(i.seqnum))
+
+        for i in world_reponse.error:
+            print(i.err)
+        return
 
 
 
