@@ -205,6 +205,7 @@ def test_database(engine):
               Order(buyer=1, product_id=2, amount=1, status='packed', package=109, rate=0, comment = "heyhey"),
               ]
 
+    package_id = 100
     
     for o in orders:
         session.add(o)
