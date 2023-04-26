@@ -4,7 +4,7 @@
 from sqlalchemy.orm import sessionmaker, mapper
 from datetime import datetime
 from sqlalchemy.engine import URL
-from sqlalchemy import Table, create_engine, MetaData, text, inspect
+from sqlalchemy import Table, create_engine, MetaData, text, inspect,select
 from sqlalchemy import Column, Integer, Text, Float, ForeignKey, String, CheckConstraint, LargeBinary
 from sqlalchemy import Enum, Float, PrimaryKeyConstraint, DateTime, func
 from sqlalchemy.orm import relationship, declarative_base, subqueryload

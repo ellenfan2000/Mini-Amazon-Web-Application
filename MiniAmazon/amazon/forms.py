@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator,MaxValueValidator
 from crispy_forms.layout import Layout, Fieldset, Row, Column
 from crispy_forms.helper import FormHelper
 class RegForm(UserCreationForm):
@@ -26,4 +26,6 @@ class BuyForm(forms.Form):
     expires = forms.CharField(required=True,label="Expires")
     security_code = forms.CharField(required=True, label="Security Code")
   
-    
+class FeedbackForm(forms.Form):
+    rate = forms.IntegerField(required=False,validators=[MinValueValidator(1),MaxValueValidator(10)],label="How would you rate it?")
+    comment = forms.CharField(required=False, label="Add Your Comments",widget=forms.Textarea(attrs={'rows': 5, 'cols': 50}))
