@@ -71,7 +71,7 @@ def get_order_details(order_id):
     global session
 
     re = session.query(Order).join(Order.product).filter(Order.id == int(order_id)).first()
-    print(o.id, o.product.name, o.customer.username)
+    print(re.id, re.product.name, re.customer.username)
     session.commit()
     # session.close()
 
