@@ -14,7 +14,16 @@ from django.contrib.messages.views import SuccessMessageMixin
 from .backend.query import *
 from .backend.request import *
 from PIL import Image
-import io
+import base64
+# import io
+
+def binary_to_image(large_bi):
+    # data=io.BytesIO(large_bi)
+    return (base64.b64encode(large_bi).decode("utf-8"))
+    
+     
+
+
 '''
 Home page to show info and recommend
 '''
@@ -83,11 +92,13 @@ Show product details
 @login_required(login_url='/login/')
 def product_details(request, id):
     try:
-        details = get_product_detail(id)
-    except:
+        details,comments = get_product_detail(id)
+        
+    except Exception as e:
         details = None
-        messages.error(request, "The prodcut you queried does not exist")
+        messages.error(request, e)
         return redirect("/")
+    img = binary_to_image(details.picture)
     if request.method == 'POST':
         form = BuyForm(request.POST)
         if form.is_valid():
@@ -98,7 +109,7 @@ def product_details(request, id):
             except Exception as e:
                 messages.error(request, e)
     form = BuyForm()
-    return render(request, "Amazon/product_details.html", {"details": details, "form": form})
+    return render(request, "Amazon/product_details.html", {"details": details, "form": form,"comments":comments,"image":img})
 
 
 @login_required(login_url='/login/')
