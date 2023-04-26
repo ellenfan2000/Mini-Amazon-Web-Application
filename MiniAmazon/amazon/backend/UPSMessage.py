@@ -78,4 +78,9 @@ def create_AUErr(err, ori_seqnum):
     auerr.seqnum = seqnum
     pass
 
+def connect_to_UPS(ups_socket, world_id):
+    auc = UPS.AUConnected()
+    auc.worldid = world_id
+    socketUtils.send_message(ups_socket, auc)
+    
 

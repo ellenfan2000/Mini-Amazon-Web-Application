@@ -94,7 +94,8 @@ def product_details(request, id):
             try:
                 buy_product(request.user.id, id, form.cleaned_data["amount"], (
                     form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
-            except:
-                messages.error(request, "The operation is invalid, please try again!")
+            except Exception as e:
+                # messages.error(request, "The operation is invalid, please try again!")
+                messages.error(request, e)
     form = BuyForm()
     return render(request, "Amazon/product_details.html", {"details": details,"form":form})

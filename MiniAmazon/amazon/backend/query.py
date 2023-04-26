@@ -16,6 +16,7 @@ def get_recommend():
     
     orders = session.query(Order.product_id, func.avg(Order.rate).label('avg_rate')).group_by(Order.product_id).order_by(func.avg(Order.rate).desc()).limit(5).subquery()
     re = session.query(Products.id, Products.name, orders.c.avg_rate).join(orders, orders.c.product_id == Products.id).order_by(orders.c.avg_rate.desc()).all()
+
     for p in re:
         print(p.id, p.name, p.avg_rate)
     session.commit()
@@ -70,9 +71,12 @@ def get_order_details(order_id):
     global engine
     global session
 
-    re = session.query(Order).join(Order.product).filter(Order.id == int(order_id)).first()
-    print(re.id, re.product.name, re.customer.username)
+    # re = session.query(Order).join(Order.product).join(Order.package).filter(Order.id == int(order_id)).first()
+    re = session.query(Order, Package).join(Order.product).join(Package, Order.package == Package.packageID).filter(Order.id == int(order_id)).first()
+    
+    print(re.id, re.product.name, re.customer.username, re.status)
     session.commit()
+    return re
     # session.close()
 
 

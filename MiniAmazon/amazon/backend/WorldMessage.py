@@ -5,6 +5,7 @@ import world_amazon_pb2 as WORLD
 import socketUtils
 
 seqnum = 0
+past_messages = {}
 
 def create_Awarehouse(id,x,y):
     wh = WORLD.AInitWarehouse()
@@ -39,6 +40,7 @@ def create_APack(whnum, shipid, *products):
     pack.seqnum = seqnum
     for p in products:
         pack.things.append(p)
+    past_messages[seqnum] = pack
     return pack
 
 
@@ -58,6 +60,7 @@ def create_APurchaseMore(whnum, *products):
     global seqnum
     seqnum += 1
     purchase.seqnum = seqnum
+    past_messages[seqnum] = purchase
     return purchase
 
 
@@ -79,6 +82,7 @@ def create_APutOnTruck(whnum, truckid, shipid):
     global seqnum
     seqnum += 1
     truck.seqnum = seqnum
+    past_messages[seqnum] = truck
     return truck
 
 '''
@@ -94,6 +98,7 @@ def create_AQuery(pkid):
     global seqnum
     seqnum += 1
     query.seqnum = seqnum
+    past_messages[seqnum] = query
     return query
 
 

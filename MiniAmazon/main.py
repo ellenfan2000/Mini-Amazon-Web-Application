@@ -4,11 +4,10 @@ import sys
 # sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 # from backend.database import *
 from amazon.backend.database import *
-from amazon.backend import socketUtils, UPSMessage, WorldMessage, request
+from amazon.backend import socketUtils, UPSMessage, WorldMessage, request, query
 from amazon.backend import amazon_ups_pb2 as UPS
 from amazon.backend import world_amazon_pb2 as World
 import socket
-
 
 def initServer(engine, ups_socket, world_socket):
     Session = sessionmaker(bind=engine)
@@ -38,44 +37,51 @@ def initServer(engine, ups_socket, world_socket):
     for p in products:
         session.add(p)
     session.commit()
+    # UPSMessage.connect_to_UPS(ups_socket, uconnect.worldid)
 
-def handle_world_response():
+
+
+def handle_world_response(world_socket):
     pass
 
 
-def handle_ups_response():
+def handle_ups_response(ups_socket):
     pass
 
+def handle_resend(world_socket, ups_socket):
+    pass
 '''
     protoc -I=./ --python_out=./ amazon_ups.proto
 '''
 if __name__ == '__main__':
     engine = initDataBase()
-
+    # engine = getEngine()
     print("database initialized")
     # ups_hostname = "0.0.0.0"
     # ups_socket = socketUtils.socket_connect(ups_hostname, 32345)
 
-    world_hostname = "0.0.0.0"
-    world_socket = socketUtils.socket_connect(world_hostname, 23456)
-    initServer(engine, 0, world_socket)
+    # world_hostname = "0.0.0.0"
+    # world_socket = socketUtils.socket_connect(world_hostname, 23456)
+    # initServer(engine, 0, world_socket)
 
-    orders = [Order(buyer = 2, product_id = 0, amount = 1, status = 'packed', package = 100, rate = 1), 
-              Order(buyer = 2, product_id = 1, amount = 1, status = 'packed', package = 200, rate = 3), 
-              Order(buyer = 2, product_id = 2, amount = 1, status = 'packed', package = 300, rate = None), 
-              Order(buyer = 2, product_id = 3, amount = 1, status = 'packed', package = 400, rate = 5), 
-              Order(buyer = 1, product_id = 4, amount = 1, status = 'packed', package = 500, rate = 2), 
-              Order(buyer = 1, product_id = 5, amount = 1, status = 'packed', package = 600, rate = 6), 
-              Order(buyer = 1, product_id = 0, amount = 1, status = 'packed', package = 700, rate = 8), 
-              Order(buyer = 1, product_id = 1, amount = 1, status = 'packed', package = 800, rate = 1), 
-              Order(buyer = 1, product_id = 2, amount = 1, status = 'packed', package = 900, rate = 0), 
-              ]
 
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    for o in orders:
-        session.add(o)
-    session.commit()
+    # orders = [Order(buyer = 2, product_id = 0, amount = 1, status = 'packed', rate = 1), 
+    #           Order(buyer = 2, product_id = 1, amount = 1, status = 'packed', rate = 3), 
+    #           Order(buyer = 2, product_id = 2, amount = 1, status = 'packed', rate = None), 
+    #           Order(buyer = 2, product_id = 3, amount = 1, status = 'packed', rate = 5), 
+    #           Order(buyer = 1, product_id = 4, amount = 1, status = 'packed', rate = 2), 
+    #           Order(buyer = 1, product_id = 5, amount = 1, status = 'packed', rate = 6), 
+    #           Order(buyer = 1, product_id = 0, amount = 1, status = 'packed', rate = 8), 
+    #           Order(buyer = 1, product_id = 1, amount = 1, status = 'packed', rate = 1), 
+    #           Order(buyer = 1, product_id = 2, amount = 1, status = 'packed', rate = 0), 
+    #           ]
+
+    # Session = sessionmaker(bind=engine)
+    # session = Session()
+    # for o in orders:
+    #     session.add(o)
+    # session.commit()
+    # request.buy_product(1, 0, 10, (1,3))
     # Session = sessionmaker(bind=engine)
 
     # # create a session and query the data

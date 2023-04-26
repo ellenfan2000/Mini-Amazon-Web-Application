@@ -3,6 +3,8 @@ import socket
 from google.protobuf.internal.decoder import _DecodeVarint
 from google.protobuf.internal.encoder import _EncodeVarint
 
+
+
 def socket_connect(hostname, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Connect the socket to the server's address and port
