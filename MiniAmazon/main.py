@@ -10,6 +10,7 @@ from amazon.backend import world_amazon_pb2 as WORLD
 import socket
 import threading
 from PIL import Image
+import io
 
 def connect_to_World(world_socket,wordid,warehouses):
     connect = WORLD.AConnect()
@@ -162,7 +163,10 @@ def handle_resend(world_socket, ups_socket):
 '''
     protoc -I=./ --python_out=./ amazon_ups.proto
 '''
-
+def read_image(path):
+      with open(path, 'rb') as f:
+        data = f.read()
+        return data
 
 def test_database(engine):
     Session = sessionmaker(bind=engine)
@@ -175,13 +179,22 @@ def test_database(engine):
         session.add(wh)
     session.commit()
 
-    kindle =Image.open('./amazon/resource/kindle.jpg').tobytes()
-    lg = Image.open('./amazon/resource/LG.jpg').tobytes()
-    tulip = Image.open('./amazon/resource/Tulip.jpg').tobytes()
-    cloud = Image.open('./amazon/resource/cloud.jpg').tobytes()
-    women_coat = Image.open('./amazon/resource/women_coat.jpg').tobytes()
-    men_coat = Image.open('./amazon/resource/men_coat.jpg').tobytes()
+    kindle = read_image('amazon/resource/kindle.jpg')
+    lg = read_image('amazon/resource/LG.jpg')
+    tulip = read_image('amazon/resource/Tulip.jpg')
+    cloud = read_image('amazon/resource/cloud.jpg')
+    women_coat = read_image('amazon/resource/women_coat.jpg')
+    men_coat= read_image('amazon/resource/men_coat.jpg')
+    # kindle =Image.open('amazon/resource/kindle.jpg').tobytes("xbm", "rgb")
+    # lg = Image.open('amazon/resource/LG.jpg').tobytes("xbm", "rgb")
+    # tulip = Image.open('amazon/resource/Tulip.jpg').tobytes("xbm", "rgb")
+    # cloud = Image.open('amazon/resource/cloud.jpg').tobytes("xbm", "rgb")
+    # women_coat = Image.open('amazon/resource/women_coat.jpg').tobytes("xbm", "rgb")
+    # men_coat = Image.open('amazon/resource/men_coat.jpg').tobytes("xbm", "rgb")
     
+    # img = Image.frombytes('RGB', (128,128),kindle,'raw')
+    # img.show() 
+    # MiniAmazon/amazon/resource/cloud.jpg
     products =[Products(id = 0, name = "Kindle Paperwhite (8 GB)", price =139.99, picture = kindle, category = "Digital", inventory = 500, warehouse_id= 0),
                Products(id = 1, name = "LG 34\" LED Monitor", price = 319.99, picture = lg, category = "Digital", inventory = 200, warehouse_id= 0),
                Products(id = 2, name = "WUZHOU Tulip Plush Toy", price = 16.59, picture = tulip, category ="Toy", inventory = 269, warehouse_id= 1),
