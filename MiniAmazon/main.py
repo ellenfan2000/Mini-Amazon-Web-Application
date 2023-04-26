@@ -80,6 +80,48 @@ def handle_resend(world_socket, ups_socket):
 '''
     protoc -I=./ --python_out=./ amazon_ups.proto
 '''
+
+
+def test_database(engine):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    warehouses = [Warehouse(id = 0, x = 1, y = 1),
+                  Warehouse(id = 1, x = 2, y = 2),
+                  Warehouse(id = 2, x = 3, y = 3)]
+    
+    for wh in warehouses:
+        session.add(wh)
+    session.commit()
+    products =[Products(id = 0, name = "Kindle Paperwhite (8 GB)", price =139.99, category = "Digital", inventory = 500, warehouse_id= 0),
+               Products(id = 1, name = "LG 34\" LED Monitor", price = 319.99, category = "Digital", inventory = 200, warehouse_id= 0),
+               Products(id = 2, name = "WUZHOU Tulip Plush Toy", price = 16.59, category ="Toy", inventory = 269, warehouse_id= 1),
+               Products(id = 3, name = "Jellycat Amuseables Cloud Plush", price = 39.99, category = "Top", inventory = 340, warehouse_id= 1),
+               Products(id = 4, name = "Women's Open Front Knit Coat", price = 69.99, category = "Cloth", inventory = 189, warehouse_id= 2),
+               Products(id = 5, name = "Men's Notch Lapel Double Trench Coat", price = 79.99, category = "Cloth", inventory = 230, warehouse_id= 2)
+               ]
+    
+    for p in products:
+        session.add(p)
+    session.commit()
+
+    orders = [Order(buyer = 2, product_id = 0, amount = 1, status = 'packed', rate = 1, comment = "not bad"), 
+              Order(buyer = 2, product_id = 1, amount = 1, status = 'packed', rate = 3, comment = "ahahahha"), 
+              Order(buyer = 2, product_id = 2, amount = 1, status = 'packed', rate = None, comment = "good good"), 
+              Order(buyer = 2, product_id = 3, amount = 1, status = 'packed', rate = 5, comment = "anot good "), 
+              Order(buyer = 1, product_id = 4, amount = 1, status = 'packed', rate = 2, comment = "i don't think it is ok"), 
+              Order(buyer = 1, product_id = 5, amount = 1, status = 'packed', rate = 6, comment = "you cannot play with it"), 
+              Order(buyer = 1, product_id = 0, amount = 1, status = 'packed', rate = 8, comment = "it brokes very fast"), 
+              Order(buyer = 1, product_id = 1, amount = 1, status = 'packed', rate = 1, comment = "it is not good"), 
+              Order(buyer = 1, product_id = 2, amount = 1, status = 'packed', rate = 0, comment = "nbvcvbn"), 
+              ]
+
+    
+    for o in orders:
+        session.add(o)
+    session.commit()
+    # request.buy_product(1, 0, 10, (1,3))
+    query.get_product_detail(0)
+
 if __name__ == '__main__':
     engine = initDataBase()
     # engine = getEngine()
@@ -87,34 +129,7 @@ if __name__ == '__main__':
     # ups_hostname = "0.0.0.0"
     # ups_socket = socketUtils.socket_connect(ups_hostname, 32345)
 
-    world_hostname = "0.0.0.0"
-    world_socket = socketUtils.socket_connect(world_hostname, 23456)
-    initServer(engine, 0, world_socket)
-
-
-    # orders = [Order(buyer = 2, product_id = 0, amount = 1, status = 'packed', rate = 1), 
-    #           Order(buyer = 2, product_id = 1, amount = 1, status = 'packed', rate = 3), 
-    #           Order(buyer = 2, product_id = 2, amount = 1, status = 'packed', rate = None), 
-    #           Order(buyer = 2, product_id = 3, amount = 1, status = 'packed', rate = 5), 
-    #           Order(buyer = 1, product_id = 4, amount = 1, status = 'packed', rate = 2), 
-    #           Order(buyer = 1, product_id = 5, amount = 1, status = 'packed', rate = 6), 
-    #           Order(buyer = 1, product_id = 0, amount = 1, status = 'packed', rate = 8), 
-    #           Order(buyer = 1, product_id = 1, amount = 1, status = 'packed', rate = 1), 
-    #           Order(buyer = 1, product_id = 2, amount = 1, status = 'packed', rate = 0), 
-    #           ]
-
-    # Session = sessionmaker(bind=engine)
-    # session = Session()
-    # for o in orders:
-    #     session.add(o)
-    # session.commit()
-    # request.buy_product(1, 0, 10, (1,3))
-    # Session = sessionmaker(bind=engine)
-
-    # # create a session and query the data
-    # session = Session()
-    # users = session.query(User).all()
-
-    # # print the usernames of all users
-    # for user in users:
-    #     print(user.username)
+    # world_hostname = "0.0.0.0"
+    # world_socket = socketUtils.socket_connect(world_hostname, 23456)
+    # initServer(engine, 0, world_socket)
+    test_database(engine)

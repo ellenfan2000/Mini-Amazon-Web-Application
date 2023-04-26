@@ -46,10 +46,11 @@ def get_product_detail(product_id):
     global session
 
     re = session.query(Products).filter(Products.id == int(product_id)).first()
-    print(re.id, re.name)
-
+    comments = session.query(Order).join(Order.customer).filter(Order.product_id == int(product_id)).all()
+    for i in comments:
+        print(i.customer.username, i.id, i.rate, i.comment)
     session.commit()
-    return re
+    return re, comments 
 
 def get_all_orders(user_id):
     # engine = getEngine()
