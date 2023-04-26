@@ -39,7 +39,7 @@ class Products(Base):
     id = Column(Integer, primary_key = True, autoincrement=True)
     name = Column(Text, nullable=False)
     description = Column(Text, nullable = True)
-    # picture = Column(LargeBinary)
+    picture = Column(LargeBinary)
     price = Column(Float)
     category = Column(Text, nullable = True)
     inventory = Column(Integer)

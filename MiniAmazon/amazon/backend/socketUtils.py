@@ -15,6 +15,7 @@ def socket_connect(hostname, port):
 
 
 def send_message(sock,message):
+    print("Send message")
     message_str = message.SerializeToString()
     _EncodeVarint(sock.send, len(message_str), None)
     sock.send(message_str)
@@ -26,6 +27,7 @@ def send_message(sock,message):
 #     socket.sendall(msg.SerializeToString())
 
 def recv_message(sock):
+    print("recv message")
     buf = sock.recv(4)
     msg_length, hdr_length = _DecodeVarint(buf, 0)
     rsp_buffer = io.BytesIO()

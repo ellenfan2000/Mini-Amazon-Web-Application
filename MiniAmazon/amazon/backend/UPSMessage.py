@@ -1,8 +1,3 @@
-from google.protobuf.internal.decoder import _DecodeVarint32
-from google.protobuf.internal.encoder import _EncodeVarint
-import socket
-import os
-import sys
 import amazon_ups_pb2 as UPS
 import socketUtils
 
@@ -77,12 +72,6 @@ def create_AUErr(err, ori_seqnum):
     seqnum += 1
     auerr.seqnum = seqnum
     pass
-
-def connect_to_UPS(ups_socket, world_id):
-    auc = UPS.AUConnected()
-    auc.worldid = world_id
-    socketUtils.send_message(ups_socket, auc)
-    
 
 def handle_UTAArrived():
     pass

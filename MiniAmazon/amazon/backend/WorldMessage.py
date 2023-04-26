@@ -1,8 +1,4 @@
-from google.protobuf.internal.decoder import _DecodeVarint32
-from google.protobuf.internal.encoder import _EncodeVarint
-import socket
 import world_amazon_pb2 as WORLD
-import socketUtils
 from database import *
 
 seqnum = 0
@@ -136,72 +132,3 @@ def handle_APackage(session, message):
     order = session.query(Order).filter(Order.package ==  message.packageid).with_for_update().first()
     order.status = message.status
     session.commit()
-
-
-
-def connect_to_World(world_socket,wordid,warehouses):
-    connect = WORLD.AConnect()
-    # connect.worldid = wordid
-    for w in warehouses:
-        print(w.id, w.x, w.y)
-        wh = create_Awarehouse(w.id, w.x, w.y)
-        connect.initwh.append(wh)
-    connect.isAmazon = True
-    response = WORLD.AConnected()
-    while(True):
-        socketUtils.send_message(world_socket, connect)
-        response_str = socketUtils.recv_message(world_socket)
-        response.ParseFromString(response_str)
-        print(response.result)
-        if(response.result == "connected!"):
-            break
-        else:
-            print(response.result)
-
-
-def init_world(world_socket, session, products):
-    command = WORLD.ACommands()
-    for p in products:
-        command.buy.append(create_APurchaseMore(p.warehouse_id, create_Aproduct(p.id, p.name, p.inventory)))
-    command.disconnect = False
-
-    while True:
-        socketUtils.send_message(world_socket, command)
-        print(command.DESCRIPTOR.name)
-        for c in command.buy:
-            print(c.seqnum)
-
-        try:
-            world_reponse = WORLD.AResponses()
-            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
-            # if(world_reponse.HasField('arrived')):
-            for i in world_reponse.arrived:
-                print("Seqnums are " + str(i.seqnum))
-
-            for i in world_reponse.acks:
-                print("Acks are : " + str(i))
-            for i in world_reponse.error:
-                print(i.err)
-            return
-        except Exception as e:
-            print(e)
-
-def resend_message(world_socket):
-    global past_messages
-    command = WORLD.ACommands()
-    for m in past_messages.items:
-        if(m.DESCRIPTOR.name == 'APurchaseMore'):
-            command.buy.append(m)
-        elif(m.DESCRIPTOR.name == 'APack'):
-            command.topack.append(m)
-        elif(m.DESCRIPTOR.name == 'APutOnTruck'):
-            command.load.append(m)
-        elif(m.DESCRIPTOR.name == 'AQuery'):
-            command.queries.append(m)
-    socketUtils.send_message(world_socket, command)
-
-
-
-# if __name__ == '__main__':
-#     world_socket = socket_connect("127.0.0.1", 23456)
-#     connect_to_World(world_socket, 1, 3)
