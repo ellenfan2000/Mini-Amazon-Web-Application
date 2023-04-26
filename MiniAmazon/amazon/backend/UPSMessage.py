@@ -84,3 +84,11 @@ def connect_to_UPS(ups_socket, world_id):
     socketUtils.send_message(ups_socket, auc)
     
 
+def handle_UTAArrived():
+    pass
+
+def handle_UTAOutDelivery():
+    pass
+
+def handle_Delivery():
+    pass
