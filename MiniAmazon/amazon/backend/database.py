@@ -1,6 +1,6 @@
-import sqlalchemy
-import math
-import struct
+# import sqlalchemy
+# import math
+# import struct
 from sqlalchemy.orm import sessionmaker, mapper
 from datetime import datetime
 from sqlalchemy.engine import URL
@@ -11,7 +11,7 @@ from sqlalchemy.orm import relationship, declarative_base, subqueryload
 
 Base = declarative_base()
 
-class User(Base):
+class AuthUser(Base):
     __tablename__ = 'auth_user'
 
     id = Column(Integer, primary_key=True)
@@ -51,12 +51,13 @@ class Order(Base):
 
     id = Column(Integer, primary_key = True, autoincrement=True)
     buyer = Column(Integer, ForeignKey('auth_user.id'))
-    customer = relationship('User')
+    customer = relationship('AuthUser')
     product_id = Column(Integer, ForeignKey('product.id'))
     product = relationship('Products', backref="order_product_id")
+    amount = Column(Integer)
     status = Column(String, CheckConstraint("status IN ('packing', 'packed', 'loading', 'loaded', 'delivering', 'delivered')"))
     package = Column(Integer, unique=True)
-    rate = Column(Integer, nullable=True)
+    rate = Column(Float, nullable=True)
     comment = Column(Text)
     
 class Package(Base):
@@ -66,14 +67,14 @@ class Package(Base):
     packageID = Column(Integer, ForeignKey('order.package') )
     order = relationship('Order')
     warehouse_id = Column(Integer, ForeignKey('warehouse.id'))
-    order = relationship('Warehouse')
+    warehouse = relationship('Warehouse')
     address_x = Column(Integer, nullable=False)
     address_y = Column(Integer, nullable=False)
 
 def initDataBase():
     # db_url = f"postgresql+psycopg2://postgres:passw0rd@db:5432/Amazon"
-    db_url = f"postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
-    engine = create_engine(db_url)
+    # db_url = f"postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
+    engine = create_engine("postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon")
     Base.metadata.drop_all(engine, [Warehouse.__table__, Products.__table__, Package.__table__, Order.__table__])
     Base.metadata.create_all(engine, checkfirst=True)
     
@@ -81,7 +82,7 @@ def initDataBase():
 
 def getEngine():
     # db_url = f"postgresql+psycopg2://postgres:passw0rd@db:5432/Amazon"
-    db_url = f"postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
+    db_url = "postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
     engine = create_engine(db_url)
 
     return engine
