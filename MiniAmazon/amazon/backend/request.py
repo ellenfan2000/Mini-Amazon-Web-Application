@@ -1,7 +1,5 @@
 
 from database import *
-
-
 package_id = 0
 def buy_product(user_id, product_id, amount, address):
 
@@ -12,7 +10,7 @@ def buy_product(user_id, product_id, amount, address):
     session = Session()
 
     # need lock
-    package_id += 1
+    package_id =session.execute(select(func.max(Order.id))).scalar()+1
     # 
     neworder = Order(buyer = user_id, product_id = product_id, amount = amount, status = 'packing', package = package_id)
     whid = session.query(Products).filter(Products.id == product_id).first().warehouse_id
