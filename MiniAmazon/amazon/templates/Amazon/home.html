@@ -17,15 +17,15 @@
     <br>
     
     <caption><h3>Recommended Products</h3></caption> 
-    <table class="table table-striped table-hover caption-top">
+    <table class="table table-striped table-hover caption-top"  style="table-layout: fixed; width: 100%;">
         <tr>
             <th style="width:28%"></th> 
-            <th style="width:20%" >Average Rate</th> 
-            <th style="width:20%"></th> 
+            <th style="width:10%" >Average Rate</th> 
+            <th style="width:10%"></th> 
         </tr>   
         {% for r in recommends %} 
             <tr>
-                <td>
+                <td style="word-wrap: break-word;">
                     {{r.name}}
                 </td>
                 <td class="rate" >
