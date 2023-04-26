@@ -1,10 +1,8 @@
-from google.protobuf.internal.decoder import _DecodeVarint32
-from google.protobuf.internal.encoder import _EncodeVarint
-import socket
 import world_amazon_pb2 as WORLD
-import socketUtils
+from database import *
 
 seqnum = 0
+past_messages = {}
 
 def create_Awarehouse(id,x,y):
     wh = WORLD.AInitWarehouse()
@@ -39,6 +37,9 @@ def create_APack(whnum, shipid, *products):
     pack.seqnum = seqnum
     for p in products:
         pack.things.append(p)
+    
+    global past_messages
+    past_messages[seqnum] = pack
     return pack
 
 
@@ -58,6 +59,9 @@ def create_APurchaseMore(whnum, *products):
     global seqnum
     seqnum += 1
     purchase.seqnum = seqnum
+
+    global past_messages
+    past_messages[seqnum] = purchase
     return purchase
 
 
@@ -79,6 +83,9 @@ def create_APutOnTruck(whnum, truckid, shipid):
     global seqnum
     seqnum += 1
     truck.seqnum = seqnum
+
+    global past_messages
+    past_messages[seqnum] = truck
     return truck
 
 '''
@@ -94,50 +101,34 @@ def create_AQuery(pkid):
     global seqnum
     seqnum += 1
     query.seqnum = seqnum
+
+    global past_messages
+    past_messages[seqnum] = query
     return query
 
 
-def connect_to_World(world_socket,wordid,warehouses):
-    connect = WORLD.AConnect()
-    # connect.worldid = wordid
-    for w in warehouses:
-        print(w.id, w.x, w.y)
-        wh = create_Awarehouse(w.id, w.x, w.y)
-        connect.initwh.append(wh)
-    connect.isAmazon = True
-    response = WORLD.AConnected()
-    while(True):
-        socketUtils.send_message(world_socket, connect)
-        response_str = socketUtils.recv_message(world_socket)
-        response.ParseFromString(response_str)
-        print(response.result)
-        if(response.result == "connected!"):
-            break
-        else:
-            print(response.result)
+'''
+when receive ApurchaseMore message from world
+'''
+def handle_APurchaseMore(session, message):
+    for p in message.things:
+        product = session.query(Products).filter(Products.id == p.id).filter(Products.name == p.description).with_for_update().first()
+        product.inventory += p.count
+        session.commit()
+    pass
+
+def handle_APacked(session, message):
+    order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
+    order.status = 'packed'
+    session.commit()
+
+def handle_ALoaded(session, message):
+    order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
+    order.status = 'loaded'
+    session.commit()
 
 
-def init_world(world_socket, products):
-    command = WORLD.ACommands()
-    while True:
-        for p in products:
-            command.buy.append(create_APurchaseMore(p.warehouse_id, create_Aproduct(p.id, p.name, p.inventory)))
-
-        command.disconnect = False
-        socketUtils.send_message(world_socket, command)
-
-        world_reponse = WORLD.AResponses()
-        world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
-        # if(world_reponse.HasField('arrived')):
-        for i in world_reponse.arrived:
-            print("Seqnums are " + str(i.seqnum))
-
-        for i in world_reponse.error:
-            print(i.err)
-        return
-
-
-
-# if __name__ == '__main__':
-#     world_socket = socket_connect("127.0.0.1", 23456)
-#     connect_to_World(world_socket, 1, 3)
+def handle_APackage(session, message):
+    order = session.query(Order).filter(Order.package ==  message.packageid).with_for_update().first()
+    order.status = message.status
+    session.commit()
