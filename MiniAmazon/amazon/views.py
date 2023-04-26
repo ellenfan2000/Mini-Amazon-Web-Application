@@ -14,7 +14,6 @@ from django.contrib.messages.views import SuccessMessageMixin
 from .backend.query import *
 from .backend.request import *
 
-
 '''
 Home page to show info and recommend
 '''
@@ -98,3 +97,13 @@ def product_details(request, id):
                 messages.error(request, "The operation is invalid, please try again!")
     form = BuyForm()
     return render(request, "Amazon/product_details.html", {"details": details,"form":form})
+
+@login_required(login_url='/login/')
+def my_orders(request):
+    orders = get_all_orders(request.user.id)
+    return render(request,  "Amazon/my_orders.html",{"orders":orders})
+
+@login_required(login_url='/login/')
+def order_details(request,id):
+    order = get_product_detail(id)
+    return render(request,  "Amazon/order_details.html",{"details":order})

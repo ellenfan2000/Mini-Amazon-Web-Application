@@ -1,0 +1,32 @@
+{% extends "Amazon/index.html" %}
+{% block content %}
+<h3>History Orders</h3>
+<table class="table table-striped table-hover caption-top">
+    <tr>
+        <th style="width:28%">Product Name</th> 
+        <th style="width:20%" >Amount</th> 
+        <th style="width:20%">Cost</th> 
+        <th style="width:20%">Status</th>
+        <th style="width:20%"></th> 
+    </tr>   
+    {% for o in orders %} 
+        <tr>
+            <td>
+                {{o.product.name}}
+            </td>
+            <td >
+                Amount
+            </td>
+            <td>
+                Cost                
+            </td>
+            <td>
+                {{o.status}}
+            </td>
+            <td>
+                <a href="{% url 'order_details' o.id %}">Details</a>
+            </td>
+        </tr>
+    {% endfor %}
+</table>
+{% endblock %}
