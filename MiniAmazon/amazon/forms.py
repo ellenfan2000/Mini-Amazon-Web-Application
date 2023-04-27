@@ -27,5 +27,5 @@ class BuyForm(forms.Form):
     security_code = forms.CharField(required=True, label="Security Code")
   
 class FeedbackForm(forms.Form):
-    rate = forms.IntegerField(required=False,validators=[MinValueValidator(1),MaxValueValidator(10)],label="How would you rate it?")
+    rate = forms.IntegerField(required=False,validators=[MinValueValidator(1),MaxValueValidator(10)],label="How would you rate it? (1 - 10)")
     comment = forms.CharField(required=False, label="Add Your Comments",widget=forms.Textarea(attrs={'rows': 5, 'cols': 50}))
