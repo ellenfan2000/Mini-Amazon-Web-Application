@@ -19,17 +19,40 @@
             </div>
             
             <div class="d-grid gap-3 d-md-flex justify-content-md-end">
-                <a href="/" class="btn btn-light btn-sm">Amazon Home</a>
-                <a href="/my_orders" class="btn btn-light btn-sm">My Orders</a>
-                <a href="/email_update" class="btn btn-light btn-sm">Change Email Address</a>
-                <a href="/password_update" class="btn btn-light btn-sm">Change Password</a>
-                <a href="/logout" class="btn btn-light btn-sm">Log out</a>
+                <a href="/all_products" class="btn btn-light btn-sm" style="width: 100px;">All</a>
+                <a href="/my_orders" class="btn btn-light btn-sm">My Orders</a>  
+                <div class="hover-area flex-item vertical">
+                    <a href="/" class="btn btn-light btn-sm">My Account</a>
+                    <div class = "links">
+                        <a href="/email_update" class="btn btn-light btn-sm" style="width: 180px;">Change Email Address</a>
+                        <a href="/password_update" class="btn btn-light btn-sm" style="width: 180px;">Change Password</a>
+                        <a href="/logout" class="btn btn-light btn-sm" style="width: 180px;">Log out</a>
+                    </div>                
+                </div>                            
                 
             </div>
+            
+            <style>
+                .links {
+                    display: none;
+                    position: absolute;
+                    top: 90px;
+                    right: 10;
+                    width: 70;
+                    background-color: #f0ececfc;
+                    border: 0px solid #ccc;
+                    padding: 10px;
+                  }
+                  
+                  .hover-area:hover .links,
+                   .links.show{
+                    display: block;
+                  }
+            </style>
         {%endif%}
         <hr class="mt-0 mb-4">
+        <h1><a href="/" style="text-decoration: none;"><font color="#270303">Mini Amazon</font></a></h1>
         
-        <h1>Mini Amazon</h1>
         
     {% block content %}
     

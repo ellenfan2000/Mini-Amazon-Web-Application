@@ -39,6 +39,12 @@ def get_search_res(user_input):
         print(p.id, p.name, p.category)
     return products
 
+def get_all_products():
+    global engine
+    global session
+    products = session.query(Products).all()
+    session.commit()
+    return products
 
 def get_product_detail(product_id):
     # engine = getEngine()

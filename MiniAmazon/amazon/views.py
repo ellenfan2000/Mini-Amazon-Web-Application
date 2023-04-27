@@ -156,3 +156,10 @@ def search_results(request):
                  "inventory": p.inventory, "img": binary_to_image(p.picture)} for p in ps]
     recommends = get_recommentd_dic()
     return render(request,  "Amazon/search_results.html", {"query": user_in, "products": products, "recommends": recommends})
+
+@login_required(login_url='/login/')
+def all_products(request):
+    ps = get_all_products()
+    products = [{"id": p.id, "name": p.name, "category": p.category, "price": p.price,
+                 "inventory": p.inventory, "img": binary_to_image(p.picture)} for p in ps]
+    return render(request,  "Amazon/all_products.html", {"products": products})
