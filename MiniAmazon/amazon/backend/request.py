@@ -1,14 +1,12 @@
 
 from database import *
-from WorldMessage import *
-from UPSMessage import *
-import amazon_ups_pb2 as UPS
-
+import socketUtils
+import struct
 
 
 package_id = 0
 def buy_product(user_id, product_id, amount, address):
-
+    sock = socketUtils.socket_connect("vcm-30469.vm.duke.edu",29081)
     # modify databse，generate packageid,
     global package_id
     engine = getEngine()
@@ -16,30 +14,30 @@ def buy_product(user_id, product_id, amount, address):
     session = Session()
 
     # need lock
-    package_id =session.execute(select(func.max(Order.id))).scalar()+1
+    # package_id =session.execute(select(func.max(Order.id))).scalar()+1
+    package_id += 1
     # 
-
     neworder = Order(buyer = user_id, product_id = product_id, amount = amount, status = 'packing', package = package_id)
-    product = session.query(Products).filter(Products.id == product_id).first()
-
-    # send ATURequestPickUp, 
-    Umessage = create_RequestPickUp(product.name, package_id, product.warehouse_id, create_Desti(address[0], address[1]))
-    Ucommand = UPS.ATUCommands()
-    Ucommand.topickup.append(Umessage)
-
-
-    # send Apacking
-    Wmessage = create_APack(product.warehouse_id,package_id,create_Aproduct(product.id,product.name, amount))
-    Wcommand = WORLD.ACommands()
-    Wcommand.apack.append(Wmessage)
-
-    newpackage = Package(packageID = package_id, warehouse_id = product.warehouse_id, address_x = address[0],address_y =address[1])
     session.add(neworder)
     session.commit()
-    session.add(newpackage)
-    session.commit()
-    print(user_id,product_id,amount,address)
-    # modify databse，generate packageid, send ATURequestPickUp, 
+    product = session.query(Products).filter(Products.id == product_id).first()
+
+    value = struct.pack('!I', package_id)
+    sock.sendall(value)
+    value = struct.pack('!I', address[0])
+    sock.sendall(value)
+    value = struct.pack('!I', address[1])
+    sock.sendall(value)
+    
+    d = sock.recv(4)
+    length = struct.unpack('!I', d)[0]
+    message = sock.recv(length).decode()
+    print(message)
+    if(message != 'Success'):
+        return message
+    
+
+    print(user_id,product_id,amount,address) 
     pass
 
 def set_comments(user_id, order_id, rate, content):

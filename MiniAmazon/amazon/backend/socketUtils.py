@@ -2,6 +2,9 @@ import io
 import socket
 from google.protobuf.internal.decoder import _DecodeVarint
 from google.protobuf.internal.encoder import _EncodeVarint
+import threading
+
+lock = threading.Lock()
 
 
 
@@ -15,10 +18,14 @@ def socket_connect(hostname, port):
 
 
 def send_message(sock,message):
-    print("Send message")
+    lock = threading.Lock()
+    print("Send message : ")
+    print(message)
     message_str = message.SerializeToString()
+    lock.acquire()
     _EncodeVarint(sock.send, len(message_str), None)
     sock.send(message_str)
+    lock.release()
 
 # def write_message_delimited(socket, msg):
 #     hdr = []
@@ -27,7 +34,6 @@ def send_message(sock,message):
 #     socket.sendall(msg.SerializeToString())
 
 def recv_message(sock):
-    print("recv message")
     buf = sock.recv(4)
     msg_length, hdr_length = _DecodeVarint(buf, 0)
     rsp_buffer = io.BytesIO()

@@ -4,9 +4,8 @@ import socketUtils
 from database import *
 import WorldMessage
 import copy
-import socketUtils
 
-seqnum = 0
+UPS_seqnum = 0
 
 '''
 message Desti_loc{
@@ -18,7 +17,7 @@ def create_Desti(x, y):
     dest = UPS.Desti_loc()
     dest.x = x
     dest.y = y
-    pass
+    return dest
 
 '''
 message ATURequestPickup{
@@ -30,19 +29,23 @@ message ATURequestPickup{
     required int64 seqnum = 6;
 }
 '''
-def create_RequestPickUp(pn, pkid, whid, dest, uacc = None):
+def create_RequestPickUp(pn, pkid, whid, x,y, uacc = None):
     pickup = UPS.ATURequestPickup()
     pickup.product_name = pn
     pickup.packageid = pkid
     if(uacc):
         pickup.ups_account = uacc
     pickup.whid = whid
-    pickup.destination = dest
+    pickup.destination.x = x
+    pickup.destination.y = y
 
+
+    global UPS_seqnum
     # need concurrent
-    seqnum += 1
-    pickup.seqnum = seqnum
-    pass
+    UPS_seqnum += 1
+    pickup.seqnum = UPS_seqnum
+
+    return pickup
 
 '''
 message ATULoaded{
@@ -56,10 +59,12 @@ def create_ATULoaded(pkid, truckid):
     loaded.packageid = pkid
     loaded.truckid = truckid
 
+
+    global UPS_seqnum
     # need concurrent
-    seqnum += 1
-    loaded.seqnum = seqnum
-    pass
+    UPS_seqnum += 1
+    loaded.seqnum = UPS_seqnum
+    return loaded
 
 '''
 message AUErr{
@@ -73,32 +78,42 @@ def create_AUErr(err, ori_seqnum):
     auerr.err = err
     auerr.originseqnum = ori_seqnum
 
+    global UPS_seqnum
     # need concurrent
-    seqnum += 1
-    auerr.seqnum = seqnum
-    pass
+    UPS_seqnum += 1
+    auerr.seqnum = UPS_seqnum
+    return auerr
 
-def handle_UTAArrived(world_socket, ups_socklet,session, message):
+def handle_UTAArrived(world_socket, ups_socklet, session, message):
     packages_not_ready = [id for id in message.packageid]
+    # waiting for all packages UPS need to be loaded 
     while(len(packages_not_ready) != 0):
+        need_send = False
         temp = copy.deepcopy(packages_not_ready)
         command = WORLD.ACommands()
         for id in temp:
             order = session.query(Order).filter(Order.package == id).first()
+            # if packed, then ask World to Load
             if order.status == 'packed':
                 command.load.append(WorldMessage.create_APutOnTruck(message.whid, message.truckid, id))
+                need_send = True
+            #if loded, waiting for other package to be ready
             if order.status == 'loaded':
                 packages_not_ready.remove(id)
-        socketUtils.send_message(world_socket, command)
+        if need_send:
+            socketUtils.send_message(world_socket, command)
+
     ULoaded = create_ATULoaded(message.packageid,message.truckid)
     socketUtils.send_message(ups_socklet, ULoaded)
     pass
+
 
 def handle_UTAOutDelivery(session, message):
     order = session.query(Order).filter(Order.package == message.packageid).first()
     order.status = 'delivering'
     session.commit()
     pass
+
 
 def handle_Delivery(session, message):
     order = session.query(Order).filter(Order.package == message.packageid).first()

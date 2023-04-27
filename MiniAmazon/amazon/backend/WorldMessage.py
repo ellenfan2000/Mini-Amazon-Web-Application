@@ -108,7 +108,7 @@ def create_AQuery(pkid):
 
 
 '''
-when receive ApurchaseMore message from world
+when receive ApurchaseMore message from world, add product inventory
 '''
 def handle_APurchaseMore(session, message):
     for p in message.things:
@@ -117,10 +117,15 @@ def handle_APurchaseMore(session, message):
         session.commit()
     pass
 
+
+'''
+when receive APacked message from world, update product status
+'''
 def handle_APacked(session, message):
     order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
     order.status = 'packed'
     session.commit()
+
 
 def handle_ALoaded(session, message):
     order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
