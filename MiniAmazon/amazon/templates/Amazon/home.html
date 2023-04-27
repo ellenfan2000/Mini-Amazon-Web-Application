@@ -15,38 +15,10 @@
     
     <p>Welcome, {{user.username}} ! We are happy to Serve you!</p>
     <br>
+    <caption><h3>Recommended Products</h3></caption>         
+
+    {% include 'Amazon/show_recomment.html' %}
     
-    <caption><h3>Recommended Products</h3></caption> 
-    <table class="table table-striped table-hover caption-top"  style="table-layout: fixed; width: 100%;">
-        <tr>
-            <th style="width:28%"></th> 
-            <th style="width:10%" >Average Rate</th> 
-            <th style="width:10%"></th> 
-        </tr>   
-        {% for r in recommends %} 
-            <tr>
-                <td style="word-wrap: break-word;">
-                    {{r.name}}
-                </td>
-                <td class="rate" >
-                    {{r.avg_rate}}
-                </td>
-                <td>
-                    <a href="{% url 'product_details' r.id %}">Details</a>
-                    
-                </td>
-            </tr>
-        {% endfor %}
-    </table>
-    <script>
-        let cells = document.querySelectorAll(".rate");
-        cells.forEach(cell => {
-            let content = cell.textContent.trim();
-            if(content!=""){
-                cell.textContent=content.substring(0,4);
-            }            
-        });
-    </script>
     {%else%}
     <h3>
         <p>Welcome to Mini Amazon!</p>

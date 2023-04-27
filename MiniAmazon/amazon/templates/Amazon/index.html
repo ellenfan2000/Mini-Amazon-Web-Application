@@ -11,20 +11,20 @@
     <div class="container">
         {%if user.is_authenticated%}
             <br>
-            <div class="d-grid gap-3 d-md-flex justify-content-md-start">
+            <div >
                 <form method="get" action="{% url 'search_results' %}">
-                    <input type="text" name="q" placeholder="Search...">
+                    <input type="text" name="q" placeholder="Search Mini Amazon" style="width: 40%; height: 35px">
                     <button type="submit" class="btn btn-dark btn-sm">Search</button>
                 </form>
             </div>
             
             <div class="d-grid gap-3 d-md-flex justify-content-md-end">
-                
+                <a href="/" class="btn btn-light btn-sm">Amazon Home</a>
                 <a href="/my_orders" class="btn btn-light btn-sm">My Orders</a>
                 <a href="/email_update" class="btn btn-light btn-sm">Change Email Address</a>
                 <a href="/password_update" class="btn btn-light btn-sm">Change Password</a>
                 <a href="/logout" class="btn btn-light btn-sm">Log out</a>
-                <a href="/" class="btn btn-light btn-sm">Home</a>
+                
             </div>
         {%endif%}
         <hr class="mt-0 mb-4">
