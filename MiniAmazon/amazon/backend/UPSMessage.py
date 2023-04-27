@@ -1,4 +1,9 @@
 import amazon_ups_pb2 as UPS
+import world_amazon_pb2 as WORLD
+import socketUtils
+from database import *
+import WorldMessage
+import copy
 import socketUtils
 
 seqnum = 0
@@ -73,11 +78,30 @@ def create_AUErr(err, ori_seqnum):
     auerr.seqnum = seqnum
     pass
 
-def handle_UTAArrived():
+def handle_UTAArrived(world_socket, ups_socklet,session, message):
+    packages_not_ready = [id for id in message.packageid]
+    while(len(packages_not_ready) != 0):
+        temp = copy.deepcopy(packages_not_ready)
+        command = WORLD.ACommands()
+        for id in temp:
+            order = session.query(Order).filter(Order.package == id).first()
+            if order.status == 'packed':
+                command.load.append(WorldMessage.create_APutOnTruck(message.whid, message.truckid, id))
+            if order.status == 'loaded':
+                packages_not_ready.remove(id)
+        socketUtils.send_message(world_socket, command)
+    ULoaded = create_ATULoaded(message.packageid,message.truckid)
+    socketUtils.send_message(ups_socklet, ULoaded)
     pass
 
-def handle_UTAOutDelivery():
+def handle_UTAOutDelivery(session, message):
+    order = session.query(Order).filter(Order.package == message.packageid).first()
+    order.status = 'delivering'
+    session.commit()
     pass
 
-def handle_Delivery():
+def handle_Delivery(session, message):
+    order = session.query(Order).filter(Order.package == message.packageid).first()
+    order.status = 'delivered'
+    session.commit()
     pass
