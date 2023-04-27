@@ -1,0 +1,30 @@
+{% extends "Amazon/index.html" %}
+{% block content %}
+<br>
+{% if query %}
+<h4>Search results for "{{ query }} :"</h4>
+{% if products %}
+{% include 'Amazon/show_products.html' %}
+
+{% else %}
+<br>
+<h3>No matching results, please search again</h3>
+<br>
+<caption>
+    <h4>Guess You Like: </h4>
+    {% include 'Amazon/show_recomment.html' %}
+</caption>
+
+</table>
+{% endif %}
+
+{% else %}
+<h4>Please enter a search query</h4>
+<br>
+<caption>
+    <h4>Guess You Like: </h4>
+    {% include 'Amazon/show_recomment.html' %}
+</caption>
+{% endif %}
+
+{% endblock %}

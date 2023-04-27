@@ -11,18 +11,51 @@
     <div class="container">
         {%if user.is_authenticated%}
             <br>
-            <div class="d-grid gap-3 d-md-flex justify-content-md-end">
-                <a href="/my_orders" class="btn btn-light btn-sm">My Orders</a>
-                <a href="/email_update" class="btn btn-light btn-sm">Change Email Address</a>
-                <a href="/password_update" class="btn btn-light btn-sm">Change Password</a>
-                <a href="/logout" class="btn btn-light btn-sm">Log out</a>
-                <a href="/" class="btn btn-light btn-sm">My Account</a>
+            <div >
+                <form method="get" action="{% url 'search_results' %}">
+                    <input type="text" name="q" placeholder="Search Mini Amazon" style="width: 40%; height: 35px">
+                    <button type="submit" class="btn btn-dark btn-sm">Search</button>
+                </form>
             </div>
+            
+            <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                <a href="/all_products" class="btn btn-light btn-sm" style="width: 100px;">All</a>
+                <a href="/my_orders" class="btn btn-light btn-sm">My Orders</a>  
+                <div class="hover-area flex-item vertical">
+                    <a href="/" class="btn btn-light btn-sm">My Account</a>
+                    <div class = "links">
+                        <a href="/email_update" class="btn btn-light btn-sm" style="width: 180px;">Change Email Address</a>
+                        <a href="/password_update" class="btn btn-light btn-sm" style="width: 180px;">Change Password</a>
+                        <a href="/logout" class="btn btn-light btn-sm" style="width: 180px;">Log out</a>
+                    </div>                
+                </div>                            
+                
+            </div>
+            
+            <style>
+                .links {
+                    display: none;
+                    position: absolute;
+                    top: 90px;
+                    right: 10;
+                    width: 70;
+                    background-color: #f0ececfc;
+                    border: 0px solid #ccc;
+                    padding: 10px;
+                  }
+                  
+                  .hover-area:hover .links,
+                   .links.show{
+                    display: block;
+                  }
+            </style>
         {%endif%}
-        <h1>Mini Amazon</h1>
         <hr class="mt-0 mb-4">
-    {% block content %}
+        <h1><a href="/" style="text-decoration: none;"><font color="#270303">Mini Amazon</font></a></h1>
         
+        
+    {% block content %}
+    
     {% endblock %} 
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz9ATKxIep9tiCxS/Z9fNfEXiDAYTujMAeBAsjFuCZSmKbSSUnQlmh/jp3" crossorigin="anonymous"></script>
