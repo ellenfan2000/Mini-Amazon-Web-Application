@@ -4,9 +4,19 @@ import socketUtils
 from database import *
 import WorldMessage
 import copy
+import time
 
+import threading
+
+ups_lock_seq = threading.Lock()
 UPS_seqnum = 0
 
+def get_seqnum():
+    global UPS_seqnum
+    ups_lock_seq.acquire()
+    UPS_seqnum += 1
+    ups_lock_seq.release()
+    return UPS_seqnum
 '''
 message Desti_loc{
     required int64 x = 1;
@@ -38,12 +48,7 @@ def create_RequestPickUp(pn, pkid, whid, x,y, uacc = None):
     pickup.whid = whid
     pickup.destination.x = x
     pickup.destination.y = y
-
-
-    global UPS_seqnum
-    # need concurrent
-    UPS_seqnum += 1
-    pickup.seqnum = UPS_seqnum
+    pickup.seqnum = get_seqnum()
 
     return pickup
 
@@ -58,12 +63,7 @@ def create_ATULoaded(pkid, truckid):
     loaded = UPS.ATULoaded()
     loaded.packageid = pkid
     loaded.truckid = truckid
-
-
-    global UPS_seqnum
-    # need concurrent
-    UPS_seqnum += 1
-    loaded.seqnum = UPS_seqnum
+    loaded.seqnum = get_seqnum()
     return loaded
 
 '''
@@ -78,10 +78,7 @@ def create_AUErr(err, ori_seqnum):
     auerr.err = err
     auerr.originseqnum = ori_seqnum
 
-    global UPS_seqnum
-    # need concurrent
-    UPS_seqnum += 1
-    auerr.seqnum = UPS_seqnum
+    auerr.seqnum = get_seqnum()
     return auerr
 
 def handle_UTAArrived(world_socket, ups_socklet, session, message):
@@ -101,9 +98,12 @@ def handle_UTAArrived(world_socket, ups_socklet, session, message):
             if order.status == 'loaded':
                 packages_not_ready.remove(id)
         if need_send:
+            print('Send put on truck')
             socketUtils.send_message(world_socket, command)
+        time.sleep(1)
 
     ULoaded = create_ATULoaded(message.packageid,message.truckid)
+    print("Send loaded")
     socketUtils.send_message(ups_socklet, ULoaded)
     pass
 

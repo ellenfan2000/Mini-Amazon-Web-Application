@@ -55,7 +55,7 @@ class Order(Base):
     product_id = Column(Integer, ForeignKey('product.id'))
     product = relationship('Products', backref="order_product_id")
     amount = Column(Integer)
-    status = Column(String, CheckConstraint("status IN ('packing', 'packed', 'loading', 'loaded', 'delivering', 'delivered')"))
+    status = Column(String, CheckConstraint("status IN ('packing', 'packed', 'loading', 'loaded', 'delivering', 'delivered', 'canceled')"))
     package = Column(Integer, unique=True)
     rate = Column(Float, nullable=True)
     comment = Column(Text)

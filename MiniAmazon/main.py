@@ -5,13 +5,14 @@ from amazon.backend import world_amazon_pb2 as WORLD
 import socket
 import threading
 import struct
+import time
 
 
 def connect_to_World(world_socket, wordid, warehouses):
     connect = WORLD.AConnect()
     # connect.worldid = wordid
     for w in warehouses:
-        print(w.id, w.x, w.y)
+        # print(w.id, w.x, w.y)
         wh = WorldMessage.create_Awarehouse(w.id, w.x, w.y)
         connect.initwh.append(wh)
     connect.isAmazon = True
@@ -23,7 +24,7 @@ def connect_to_World(world_socket, wordid, warehouses):
         print(response.result)
         if (response.result == "connected!"):
             print("Connected to World!")
-            break
+            return
         else:
             print(response.result)
 
@@ -33,7 +34,6 @@ def connect_to_UPS(ups_socket, world_id):
     auc.worldid = world_id
     socketUtils.send_message(ups_socket, auc)
     print("Connected to UPS")
-
 
 def init_world(world_socket, session, products):
     command = WORLD.ACommands()
@@ -123,68 +123,80 @@ def handle_world_response(world_socket, session):
     while True:
         command = WORLD.ACommands()
         world_reponse = WORLD.AResponses()
-        world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+        try:
+            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
 
-        # if recieve ack, remove the command from the resend list
-        for i in world_reponse.acks:
-            if (i in WorldMessage.past_messages):
-                WorldMessage.past_messages.pop(i)
+            # if recieve ack, remove the command from the resend list
+            WorldMessage.lock_resend.acquire()
+            for i in world_reponse.acks:
+                if (i in WorldMessage.past_messages):
+                    WorldMessage.past_messages.pop(i)
+            WorldMessage.lock_resend.release()
 
-        # handle each type of message in response arrived
-        for m in world_reponse.arrived:
-            WorldMessage.handle_APurchaseMore(session, m)
-            command.acks.append(m.seqnum)
-        for m in world_reponse.ready:
-            WorldMessage.handle_APacked(session, m)
-            command.acks.append(m.seqnum)
-        for m in world_reponse.loaded:
-            WorldMessage.handle_ALoaded(session, m)
-            command.acks.append(m.seqnum)
-        for m in world_reponse.packagestatus:
-            WorldMessage.handle_APackage(session, m)
-            command.acks.append(m.seqnum)
+            # handle each type of message in response arrived
+            for m in world_reponse.arrived:
+                WorldMessage.handle_APurchaseMore(session, m)
+                command.acks.append(m.seqnum)
+            for m in world_reponse.ready:
+                WorldMessage.handle_APacked(session, m)
+                command.acks.append(m.seqnum)
+            for m in world_reponse.loaded:
+                WorldMessage.handle_ALoaded(session, m)
+                command.acks.append(m.seqnum)
+            for m in world_reponse.packagestatus:
+                WorldMessage.handle_APackage(session, m)
+                command.acks.append(m.seqnum)
 
-        # send acks to world
-        socketUtils.send_message(world_socket, command)
+            # send acks to world
+            socketUtils.send_message(world_socket, command)
 
-        for i in world_reponse.error:
-            print(i.err)
-        pass
+            for i in world_reponse.error:
+                print(i.err)
+            pass
+        except Exception as e:
+            print(e)
+
+
 
 
 def handle_ups_response(ups_socket,world_socket,session):
     print("Listening to all UPS response ...")
     while True:
-        ups_reponse = UPS.UTACommands()
-        ups_reponse.ParseFromString(socketUtils.recv_message(ups_socket))
+        try:
+            ups_reponse = UPS.UTACommands()
+            ups_reponse.ParseFromString(socketUtils.recv_message(ups_socket))
 
-        # handle each type of message in response arrived
-        for m in ups_reponse.arrive:
-            UPSMessage.handle_UTAArrived(world_socket,ups_socket, session, m)
-        for m in ups_reponse.todeliver:
-            UPSMessage.handle_UTAOutDelivery(session, m)
-        for m in ups_reponse.delivered:
-            UPSMessage.handle_Delivery(session, m)
+            # handle each type of message in response arrived
+            for m in ups_reponse.arrive:
+                UPSMessage.handle_UTAArrived(world_socket,ups_socket, session, m)
+            for m in ups_reponse.todeliver:
+                UPSMessage.handle_UTAOutDelivery(session, m)
+            for m in ups_reponse.delivered:
+                UPSMessage.handle_Delivery(session, m)
 
-        for i in ups_reponse.error:
-            print(i.err)
-        pass
+            for i in ups_reponse.error:
+                print(i.err)
+        except Exception as e:
+            print(e)
 
-
+# resend message every 10 seconds
 def handle_resend(world_socket):
-    past_messages = WorldMessage.past_messages
-    command = WORLD.ACommands()
-    for m in past_messages.values():
-        if (m.DESCRIPTOR.name == 'APurchaseMore'):
-            command.buy.append(m)
-        elif (m.DESCRIPTOR.name == 'APack'):
-            command.topack.append(m)
-        elif (m.DESCRIPTOR.name == 'APutOnTruck'):
-            command.load.append(m)
-        elif (m.DESCRIPTOR.name == 'AQuery'):
-            command.queries.append(m)
-    socketUtils.send_message(world_socket, command)
-    pass
+    while True:
+        WorldMessage.lock_resend.acquire()
+        past_messages = WorldMessage.past_messages
+        command = WORLD.ACommands()
+        for m in past_messages.values():
+            if (m.DESCRIPTOR.name == 'APurchaseMore'):
+                command.buy.append(m)
+            elif (m.DESCRIPTOR.name == 'APack'):
+                command.topack.append(m)
+            elif (m.DESCRIPTOR.name == 'APutOnTruck'):
+                command.load.append(m)
+            elif (m.DESCRIPTOR.name == 'AQuery'):
+                command.queries.append(m)
+        WorldMessage.lock_resend.release()
+        socketUtils.send_message(world_socket, command)
+        time.sleep(10)
 
 def handle_front_end(ups_socket,world_socket,session):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -210,16 +222,12 @@ def handle_front_end(ups_socket,world_socket,session):
         y = struct.unpack('!I', d)[0]
 
         response = buy(package_id,x, y, ups_socket,world_socket,session)
-        if(response == None):
-            response = "Success"
+
         length = struct.pack('!I', len(response))
         client_socket.sendall(length)
         client_socket.sendall(response.encode())
         client_socket.close()
 
-'''
-    protoc -I=./ --python_out=./ amazon_ups.proto
-'''
 
 def buy(package_id, x, y, ups_socket, world_socket, session):
     Session = sessionmaker(bind=engine)
@@ -234,7 +242,7 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
         order.status = 'canceled'
         session.commit()
         socketUtils.send_message(world_socket, Wcommand)
-        return "No enough inventory"
+        return 'No enough inventory'
     
     newpackage = Package(packageID = package_id, warehouse_id = order.product.warehouse_id, address_x = x,address_y = y)
     
@@ -246,13 +254,17 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
     Ucommand = UPS.ATUCommands()
     Ucommand.topickup.append(Umessage)
     socketUtils.send_message(ups_socket,Ucommand)
+    print('Send request pick up')
 
     # send Apacking
     Wcommand.topack.append(WorldMessage.create_APack(order.product.warehouse_id,package_id,WorldMessage.create_Aproduct(order.product.id, order.product.name, order.amount)))
     socketUtils.send_message(world_socket,Wcommand)
-    return None
+    return 'Success'
 
 
+'''
+    protoc -I=./ --python_out=./ amazon_ups.proto
+'''
 if __name__ == '__main__':
     engine = initDataBase()
     engine = getEngine()

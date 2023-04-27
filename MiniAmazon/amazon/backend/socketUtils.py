@@ -7,7 +7,6 @@ import threading
 lock = threading.Lock()
 
 
-
 def socket_connect(hostname, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Connect the socket to the server's address and port
@@ -18,7 +17,7 @@ def socket_connect(hostname, port):
 
 
 def send_message(sock,message):
-    lock = threading.Lock()
+    global lock
     print("Send message : ")
     print(message)
     message_str = message.SerializeToString()
@@ -34,6 +33,7 @@ def send_message(sock,message):
 #     socket.sendall(msg.SerializeToString())
 
 def recv_message(sock):
+    global lock
     buf = sock.recv(4)
     msg_length, hdr_length = _DecodeVarint(buf, 0)
     rsp_buffer = io.BytesIO()
