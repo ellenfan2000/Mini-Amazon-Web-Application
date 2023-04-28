@@ -110,9 +110,20 @@
         </div>
         
         <br />
-        <button type="submit" class="btn btn-outline-success">Purchase</button>   
+        <button type="submit" name ="buy_sumbit" class="btn btn-outline-success">Purchase</button>   
         <a href="/" class = "btn btn-outline-success">Cancel</a>
         </form>	
+    <br><br>
+        <form method="POST" class="form-group">
+            {% csrf_token %}
+           
+            {{ form2.amount|as_crispy_field }}
+                <br>
+            <button type="submit" name ="cart_sumbit" class="btn btn-outline-success">Add to Cart</button>
+                 
+
+            
+        </form>
 </div>
     
 {% endblock %}

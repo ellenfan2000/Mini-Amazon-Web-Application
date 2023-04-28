@@ -286,7 +286,7 @@ if __name__ == '__main__':
     engine = initDataBase()
     # engine = getEngine()
     print("database initialized")
-    ups_hostname = "vcm-30469.vm.duke.edu"
+    ups_hostname = socket.gethostname()
     ups_socket = socketUtils.socket_connect(ups_hostname, 32346)
 
     world_hostname = "0.0.0.0"

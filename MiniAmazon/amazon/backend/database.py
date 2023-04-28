@@ -71,11 +71,22 @@ class Package(Base):
     address_x = Column(Integer, nullable=False)
     address_y = Column(Integer, nullable=False)
 
+
+class Cart(Base):
+    __tablename__ = "cart"
+    id = Column(Integer, primary_key = True, autoincrement=True)
+    buyer = Column(Integer, ForeignKey('auth_user.id'))
+    customer = relationship('AuthUser')
+    product_id = Column(Integer, ForeignKey('product.id'))
+    product = relationship('Products', backref="cart_product_id")
+    amount = Column(Integer)
+
+
 def initDataBase():
     # db_url = f"postgresql+psycopg2://postgres:passw0rd@db:5432/Amazon"
     # db_url = f"postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
     engine = create_engine("postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon")
-    Base.metadata.drop_all(engine, [Warehouse.__table__, Products.__table__, Package.__table__, Order.__table__])
+    Base.metadata.drop_all(engine, [Warehouse.__table__, Products.__table__, Package.__table__, Order.__table__,Cart.__table__])
     Base.metadata.create_all(engine, checkfirst=True)
     
     return engine
