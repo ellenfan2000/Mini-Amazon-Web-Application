@@ -1,14 +1,16 @@
 from amazon.backend.database import *
-from amazon.backend import socketUtils, UPSMessage, WorldMessage, request, query
+from amazon.backend import socketUtils,request, query
+from amazon.backend.WorldMessage import WorldMessage
+from amazon.backend.UPSMessage import UPSMessage
 from amazon.backend import amazon_ups_pb2 as UPS
 from amazon.backend import world_amazon_pb2 as WORLD
 import socket
 import threading
 import struct
 import time
+from concurrent.futures import ThreadPoolExecutor
 
-
-def connect_to_World(world_socket, wordid, warehouses, session):
+def connect_to_World(world_socket, wordid, session, world:WorldMessage):
     warehouses = [Warehouse(id=0, x=1, y=1),
                   Warehouse(id=1, x=2, y=2),
                   Warehouse(id=2, x=3, y=3)]
@@ -17,8 +19,9 @@ def connect_to_World(world_socket, wordid, warehouses, session):
     # connect.worldid = wordid
     for w in warehouses:
         # print(w.id, w.x, w.y)
-        wh = WorldMessage.create_Awarehouse(w.id, w.x, w.y)
+        wh = world.create_Awarehouse(w.id, w.x, w.y)
         connect.initwh.append(wh)
+
     connect.isAmazon = True
     response = WORLD.AConnected()
     while (True):
@@ -42,7 +45,7 @@ def connect_to_UPS(ups_socket, world_id):
     socketUtils.send_message(ups_socket, auc)
     print("Connected to UPS!")
 
-def init_world(world_socket, session):
+def init_world(world_socket, session, world:WorldMessage):
     kindle = read_image('amazon/resource/kindle.jpg')
     lg = read_image('amazon/resource/LG.jpg')
     tulip = read_image('amazon/resource/Tulip.jpg')
@@ -71,8 +74,8 @@ def init_world(world_socket, session):
     command = WORLD.ACommands()
 
     for p in products:
-        command.buy.append(WorldMessage.create_APurchaseMore(
-            p.warehouse_id, WorldMessage.create_Aproduct(p.id, p.name, p.inventory)))
+        command.buy.append(world.create_APurchaseMore(
+            p.warehouse_id, world.create_Aproduct(p.id, p.name, p.inventory)))
     command.disconnect = False
 
     while True:
@@ -82,15 +85,16 @@ def init_world(world_socket, session):
             print(c.seqnum)
 
         try:
-            world_reponse = WORLD.AResponses()
-            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+            world_reponse = socketUtils.recv_message_from_World(world_socket)
+            # world_reponse = WORLD.AResponses()
+            # world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
 
             # recieved acks, remove saved messages
-            WorldMessage.lock_resend.acquire()
+            world.lock_resend.acquire()
             for i in world_reponse.acks:
-                if (i in WorldMessage.past_messages):
-                    WorldMessage.past_messages.pop(i)
-            WorldMessage.lock_resend.release()
+                if (i in world.past_messages):
+                    world.past_messages.pop(i)
+            world.lock_resend.release()
 
             for i in world_reponse.error:
                 print(i.err)
@@ -109,44 +113,47 @@ def read_image(path):
         data = f.read()
         return data
     
-def initServer(session, ups_socket, world_socket):
+def initServer(session, ups_socket, world_socket, world):
     uconnect = UPS.UTAConnect()
     # uconnect.ParseFromString(socketUtils.recv_message(ups_socket))
     uconnect.worldid = 1
 
-    connect_to_World(world_socket, uconnect.worldid, session)
+    connect_to_World(world_socket, uconnect.worldid, session, world)
     init_world(world_socket, session)
     session.commit()
     # UPSMessage.connect_to_UPS(ups_socket, uconnect.worldid)
 
 
-def handle_world_response(world_socket, session):
+def handle_world_response(world_socket, world):
     print("Listening to all World response ...")
     while True:
+        if(world_socket.fileno() == -1):
+            print("Socket connection is closed.")
+            break
         command = WORLD.ACommands()
         world_reponse = WORLD.AResponses()
         try:
-            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
-
+            # world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+            world_reponse = socketUtils.recv_message_from_World(world_socket)
             # if recieve ack, remove the command from the resend list
-            WorldMessage.lock_resend.acquire()
+            world.lock_resend.acquire()
             for i in world_reponse.acks:
-                if (i in WorldMessage.past_messages):
-                    WorldMessage.past_messages.pop(i)
-            WorldMessage.lock_resend.release()
+                if (i in world.past_messages):
+                    world.past_messages.pop(i)
+            world.lock_resend.release()
 
             # handle each type of message in response arrived
             for m in world_reponse.arrived:
-                WorldMessage.handle_APurchaseMore(session, m)
+                world.handle_APurchaseMore(m)
                 command.acks.append(m.seqnum)
             for m in world_reponse.ready:
-                WorldMessage.handle_APacked(session, m)
+                world.handle_APacked( m)
                 command.acks.append(m.seqnum)
             for m in world_reponse.loaded:
-                WorldMessage.handle_ALoaded(session, m)
+                world.handle_ALoaded(m)
                 command.acks.append(m.seqnum)
             for m in world_reponse.packagestatus:
-                WorldMessage.handle_APackage(session, m)
+                world.handle_APackage(m)
                 command.acks.append(m.seqnum)
 
             # send acks to world
@@ -159,34 +166,39 @@ def handle_world_response(world_socket, session):
             print(e)
 
 
-
-
-def handle_ups_response(ups_socket,world_socket,session):
+def handle_ups_response(ups_socket,world_socket,world, ups):
     print("Listening to all UPS response ...")
+    thread_pool = ThreadPoolExecutor(max_workers=10)
     while True:
         try:
-            ups_reponse = UPS.UTACommands()
-            ups_reponse.ParseFromString(socketUtils.recv_message(ups_socket))
-            print("Recv message from UPS: " )
-            print(ups_reponse)
+            command = UPS.ATUCommands()
+            if(ups_socket.fileno() == -1 or world_socket.fileno() == -1):
+                print("Socket connection is closed.")
+                break
+            ups_reponse = socketUtils.recv_message_from_UPS(ups_socket)
             # handle each type of message in response arrived
             for m in ups_reponse.arrive:
-                UPSMessage.handle_UTAArrived(world_socket,ups_socket, session, m)
+                command.acks.append(m.seqnum)
+                thread_pool.submit(UPSMessage.handle_UTAArrived, world_socket,ups_socket, m, world.seqnum)
             for m in ups_reponse.todeliver:
-                UPSMessage.handle_UTAOutDelivery(session, m)
+                command.acks.append(m.seqnum)
+                UPSMessage.handle_UTAOutDelivery( m)
             for m in ups_reponse.delivered:
-                UPSMessage.handle_Delivery(session, m)
-
+                command.acks.append(m.seqnum)
+                UPSMessage.handle_Delivery( m)
             for i in ups_reponse.error:
                 print(i.err)
+
+            # send acks to UPS
+            socketUtils.send_message(ups_socket, command)
         except Exception as e:
             print(e)
 
 # resend message every 10 seconds
 def handle_resend(world_socket):
     while True:
-        WorldMessage.lock_resend.acquire()
-        past_messages = WorldMessage.past_messages
+        world.lock_resend.acquire()
+        past_messages = world.past_messages
         command = WORLD.ACommands()
         for m in past_messages.values():
             if (m.DESCRIPTOR.name == 'APurchaseMore'):
@@ -197,7 +209,7 @@ def handle_resend(world_socket):
                 command.load.append(m)
             elif (m.DESCRIPTOR.name == 'AQuery'):
                 command.queries.append(m)
-        WorldMessage.lock_resend.release()
+        world.lock_resend.release()
         socketUtils.send_message(world_socket, command)
         time.sleep(10)
 
@@ -213,6 +225,9 @@ def handle_front_end(ups_socket,world_socket,session):
     print(f"Server listening on {hostname}:{port}")
 
     while True:
+        if(ups_socket.fileno() == -1 or world_socket.fileno() == -1):
+            print("Socket connection is closed.")
+            break
         # Accept incoming connection
         client_socket, client_address = sock.accept()
         d = client_socket.recv(4)
@@ -239,7 +254,7 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
 
     # if inventory is not enough, send purchase more to world, return err message to client
     if(order.product.inventory < order.amount):
-        Wcommand.buy.append(WorldMessage.create_APurchaseMore(order.product.warehouse_id, WorldMessage.create_Aproduct(order.product.id, order.product.name, 1000+2*order.amount)))
+        Wcommand.buy.append(world.create_APurchaseMore(order.product.warehouse_id, world.create_Aproduct(order.product.id, order.product.name, 1000+2*order.amount)))
         order.status = 'canceled'
         session.commit()
         socketUtils.send_message(world_socket, Wcommand)
@@ -252,15 +267,15 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
     session.commit()
 
     # send ATURequestPickUp, 
+    print('Send request pick up to UPS')
     Ucommand = UPS.ATUCommands()
     Ucommand.topickup.append(UPSMessage.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y))
     socketUtils.send_message(ups_socket,Ucommand)
-    print('Send request pick up to UPS')
 
     # send Apacking
-    Wcommand.topack.append(WorldMessage.create_APack(order.product.warehouse_id,package_id,WorldMessage.create_Aproduct(order.product.id, order.product.name, order.amount)))
-    socketUtils.send_message(world_socket,Wcommand)
     print('Send request packing to World ')
+    Wcommand.topack.append(world.create_APack(order.product.warehouse_id,package_id,world.create_Aproduct(order.product.id, order.product.name, order.amount)))
+    socketUtils.send_message(world_socket,Wcommand)
     return 'Success'
 
 
@@ -269,18 +284,23 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
 '''
 if __name__ == '__main__':
     engine = initDataBase()
-    engine = getEngine()
+    # engine = getEngine()
     print("database initialized")
     ups_hostname = "vcm-30469.vm.duke.edu"
-    ups_socket = socketUtils.socket_connect(ups_hostname, 32345)
+    ups_socket = socketUtils.socket_connect(ups_hostname, 32346)
 
     world_hostname = "0.0.0.0"
     world_socket = socketUtils.socket_connect(world_hostname, 23456)
-    initServer(engine, 0, world_socket)
-    # # test_database(engine)
-
+    
     Session = sessionmaker(bind=engine)
     session = Session()
+
+    world = WorldMessage(session)
+    ups = UPSMessage(session)
+
+    initServer(session, ups_socket, world_socket, world)
+    # # test_database(engine)
+
 
     # a thread waiting for all world response
     world_thread = threading.Thread(target=handle_world_response, args = (world_socket, session))

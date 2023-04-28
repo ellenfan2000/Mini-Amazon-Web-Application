@@ -33,12 +33,11 @@ def buy_product(user_id, product_id, amount, address):
     length = struct.unpack('!I', d)[0]
     message = sock.recv(length).decode()
     print(message)
-    if(message != 'Success'):
-        return message
-    
-
     print(user_id,product_id,amount,address) 
-    pass
+    if(message == 'Success'):
+        return neworder.id
+    else:
+        raise ValueError(message)
 
 def set_comments(user_id, order_id, rate, content):
    

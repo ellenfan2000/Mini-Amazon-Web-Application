@@ -109,9 +109,9 @@ def product_details(request, id):
         form = BuyForm(request.POST)
         if form.is_valid():
             try:
-                buy_product(request.user.id, id, form.cleaned_data["amount"], (
+                response = buy_product(request.user.id, id, form.cleaned_data["amount"], (
                     form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
-                return redirect("/order_details/"+str(id))
+                return redirect("/order_details/"+str(response))
             except Exception as e:
                 messages.error(request, e)
     form = BuyForm()
