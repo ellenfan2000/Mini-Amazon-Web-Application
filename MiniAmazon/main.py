@@ -8,7 +8,11 @@ import struct
 import time
 
 
-def connect_to_World(world_socket, wordid, warehouses):
+def connect_to_World(world_socket, wordid, warehouses, session):
+    warehouses = [Warehouse(id=0, x=1, y=1),
+                  Warehouse(id=1, x=2, y=2),
+                  Warehouse(id=2, x=3, y=3)]
+    
     connect = WORLD.AConnect()
     # connect.worldid = wordid
     for w in warehouses:
@@ -24,6 +28,9 @@ def connect_to_World(world_socket, wordid, warehouses):
         print(response.result)
         if (response.result == "connected!"):
             print("Connected to World!")
+            for wh in warehouses:
+                session.add(wh)
+            session.commit()
             return
         else:
             print(response.result)
@@ -33,52 +40,9 @@ def connect_to_UPS(ups_socket, world_id):
     auc = UPS.AUConnected()
     auc.worldid = world_id
     socketUtils.send_message(ups_socket, auc)
-    print("Connected to UPS")
+    print("Connected to UPS!")
 
-def init_world(world_socket, session, products):
-    command = WORLD.ACommands()
-    for p in products:
-        command.buy.append(WorldMessage.create_APurchaseMore(
-            p.warehouse_id, WorldMessage.create_Aproduct(p.id, p.name, p.inventory)))
-    command.disconnect = False
-
-    while True:
-        socketUtils.send_message(world_socket, command)
-        print(command.DESCRIPTOR.name)
-        for c in command.buy:
-            print(c.seqnum)
-
-        try:
-            world_reponse = WORLD.AResponses()
-            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
-            for i in world_reponse.arrived:
-                print("Seqnums are " + str(i.seqnum))
-
-            for i in world_reponse.acks:
-                print("Acks are : " + str(i))
-            for i in world_reponse.error:
-                print(i.err)
-
-            for p in products:
-                session.add(p)
-            session.commit()
-            print("World Initialized!")
-            return
-        except Exception as e:
-            print(e)
-
-def read_image(path):
-    with open(path, 'rb') as f:
-        data = f.read()
-        return data
-    
-def initServer(engine, ups_socket, world_socket):
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    warehouses = [Warehouse(id=0, x=1, y=1),
-                  Warehouse(id=1, x=2, y=2),
-                  Warehouse(id=2, x=3, y=3)]
-
+def init_world(world_socket, session):
     kindle = read_image('amazon/resource/kindle.jpg')
     lg = read_image('amazon/resource/LG.jpg')
     tulip = read_image('amazon/resource/Tulip.jpg')
@@ -104,16 +68,54 @@ def initServer(engine, ups_socket, world_socket):
                          price=48.75, picture=dose_serum, category="SkinCare", inventory=218, warehouse_id=2, description="A potent retinol serum in a daily-strength micro-dose that visibly reduces wrinkles, firms skin, evens skin tone, and smoothes texture with minimal discomfort. Paraben-free and fragrance-free."),
                 ]
 
+    command = WORLD.ACommands()
+
+    for p in products:
+        command.buy.append(WorldMessage.create_APurchaseMore(
+            p.warehouse_id, WorldMessage.create_Aproduct(p.id, p.name, p.inventory)))
+    command.disconnect = False
+
+    while True:
+        socketUtils.send_message(world_socket, command)
+        print(command.DESCRIPTOR.name)
+        for c in command.buy:
+            print(c.seqnum)
+
+        try:
+            world_reponse = WORLD.AResponses()
+            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+
+            # recieved acks, remove saved messages
+            WorldMessage.lock_resend.acquire()
+            for i in world_reponse.acks:
+                if (i in WorldMessage.past_messages):
+                    WorldMessage.past_messages.pop(i)
+            WorldMessage.lock_resend.release()
+
+            for i in world_reponse.error:
+                print(i.err)
+
+            for p in products:
+                session.add(p)
+            session.commit()
+
+            print("World Initialized!")
+            return
+        except Exception as e:
+            print(e)
+
+def read_image(path):
+    with open(path, 'rb') as f:
+        data = f.read()
+        return data
+    
+def initServer(session, ups_socket, world_socket):
     uconnect = UPS.UTAConnect()
     # uconnect.ParseFromString(socketUtils.recv_message(ups_socket))
     uconnect.worldid = 1
 
-    connect_to_World(world_socket, uconnect.worldid, warehouses)
-    for wh in warehouses:
-        session.add(wh)
-    session.commit()
-
-    init_world(world_socket, session, products)
+    connect_to_World(world_socket, uconnect.worldid, session)
+    init_world(world_socket, session)
     session.commit()
     # UPSMessage.connect_to_UPS(ups_socket, uconnect.worldid)
 
@@ -165,7 +167,8 @@ def handle_ups_response(ups_socket,world_socket,session):
         try:
             ups_reponse = UPS.UTACommands()
             ups_reponse.ParseFromString(socketUtils.recv_message(ups_socket))
-
+            print("Recv message from UPS: " )
+            print(ups_reponse)
             # handle each type of message in response arrived
             for m in ups_reponse.arrive:
                 UPSMessage.handle_UTAArrived(world_socket,ups_socket, session, m)
@@ -230,12 +233,10 @@ def handle_front_end(ups_socket,world_socket,session):
 
 
 def buy(package_id, x, y, ups_socket, world_socket, session):
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    print("Recieve order from front-end")
     Wcommand = WORLD.ACommands()
     order = session.query(Order).join(Order.product).filter(Order.package == package_id).first()
-    package = session.query(Package).filter(Package.packageID == package_id).first()
-    
+
     # if inventory is not enough, send purchase more to world, return err message to client
     if(order.product.inventory < order.amount):
         Wcommand.buy.append(WorldMessage.create_APurchaseMore(order.product.warehouse_id, WorldMessage.create_Aproduct(order.product.id, order.product.name, 1000+2*order.amount)))
@@ -243,22 +244,23 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
         session.commit()
         socketUtils.send_message(world_socket, Wcommand)
         return 'No enough inventory'
-    
-    newpackage = Package(packageID = package_id, warehouse_id = order.product.warehouse_id, address_x = x,address_y = y)
+    session.commit()
+
+    newpackage = Package(packageID = package_id, warehouse_id = order.product.warehouse_id, address_x = x, address_y = y)
     
     session.add(newpackage)
     session.commit()
 
     # send ATURequestPickUp, 
-    Umessage = UPSMessage.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y)
     Ucommand = UPS.ATUCommands()
-    Ucommand.topickup.append(Umessage)
+    Ucommand.topickup.append(UPSMessage.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y))
     socketUtils.send_message(ups_socket,Ucommand)
-    print('Send request pick up')
+    print('Send request pick up to UPS')
 
     # send Apacking
     Wcommand.topack.append(WorldMessage.create_APack(order.product.warehouse_id,package_id,WorldMessage.create_Aproduct(order.product.id, order.product.name, order.amount)))
     socketUtils.send_message(world_socket,Wcommand)
+    print('Send request packing to World ')
     return 'Success'
 
 

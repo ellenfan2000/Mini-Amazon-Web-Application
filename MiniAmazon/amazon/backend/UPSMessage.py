@@ -59,9 +59,9 @@ message ATULoaded{
     required int64 seqnum = 3;
 }
 '''
-def create_ATULoaded(pkid, truckid):
+def create_ATULoaded(truckid, pkids):
     loaded = UPS.ATULoaded()
-    loaded.packageid = pkid
+    loaded.packageid.extend(pkids)
     loaded.truckid = truckid
     loaded.seqnum = get_seqnum()
     return loaded
@@ -98,13 +98,14 @@ def handle_UTAArrived(world_socket, ups_socklet, session, message):
             if order.status == 'loaded':
                 packages_not_ready.remove(id)
         if need_send:
-            print('Send put on truck')
+            print('Send put on truck to World')
             socketUtils.send_message(world_socket, command)
         time.sleep(1)
 
-    ULoaded = create_ATULoaded(message.packageid,message.truckid)
-    print("Send loaded")
-    socketUtils.send_message(ups_socklet, ULoaded)
+    Ucommand = UPS.ATUCommands()
+    Ucommand.loaded.append(create_ATULoaded(message.truckid,message.packageid))
+    print("Send loaded to UPS")
+    socketUtils.send_message(ups_socklet, Ucommand)
     pass
 
 
