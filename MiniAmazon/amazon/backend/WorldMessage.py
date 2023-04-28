@@ -1,8 +1,29 @@
 import world_amazon_pb2 as WORLD
 from database import *
+import threading
+
+lock_seq = threading.Lock()
+lock_resend = threading.Lock()
 
 seqnum = 0
 past_messages = {}
+
+def get_seqnum():
+    global seqnum
+    lock_seq.acquire()
+    seqnum += 1
+    lock_seq.release()
+    return seqnum
+
+
+
+def add_message(message):
+    global past_messages
+    lock_resend.acquire()
+    past_messages[seqnum] = message
+    lock_resend.release()
+
+
 
 def create_Awarehouse(id,x,y):
     wh = WORLD.AInitWarehouse()
@@ -32,14 +53,12 @@ def create_APack(whnum, shipid, *products):
     pack.shipid = shipid
 
     # concurrent issue
-    global seqnum
-    seqnum += 1
-    pack.seqnum = seqnum
+    pack.seqnum = get_seqnum()
     for p in products:
         pack.things.append(p)
     
-    global past_messages
-    past_messages[seqnum] = pack
+    add_message(pack)
+    
     return pack
 
 
@@ -56,12 +75,8 @@ def create_APurchaseMore(whnum, *products):
     for p in products:
         purchase.things.append(p)
     # concurrent issue
-    global seqnum
-    seqnum += 1
-    purchase.seqnum = seqnum
-
-    global past_messages
-    past_messages[seqnum] = purchase
+    purchase.seqnum = get_seqnum()
+    add_message(purchase)
     return purchase
 
 
@@ -79,13 +94,8 @@ def create_APutOnTruck(whnum, truckid, shipid):
     truck.truckid = truckid
     truck.shipid = shipid
 
-    # concurrent issue
-    global seqnum
-    seqnum += 1
-    truck.seqnum = seqnum
-
-    global past_messages
-    past_messages[seqnum] = truck
+    truck.seqnum = get_seqnum()
+    add_message(truck)
     return truck
 
 '''
@@ -97,18 +107,13 @@ message AQuery{
 def create_AQuery(pkid):
     query = WORLD.AQuery()
     query.packageid = pkid
-    # concurrent issue
-    global seqnum
-    seqnum += 1
-    query.seqnum = seqnum
-
-    global past_messages
-    past_messages[seqnum] = query
+    query.seqnum = get_seqnum()
+    add_message(query)
     return query
 
 
 '''
-when receive ApurchaseMore message from world
+when receive ApurchaseMore message from world, add product inventory
 '''
 def handle_APurchaseMore(session, message):
     for p in message.things:
@@ -117,10 +122,15 @@ def handle_APurchaseMore(session, message):
         session.commit()
     pass
 
+
+'''
+when receive APacked message from world, update product status
+'''
 def handle_APacked(session, message):
     order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
     order.status = 'packed'
     session.commit()
+
 
 def handle_ALoaded(session, message):
     order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
