@@ -30,7 +30,7 @@ class WorldMessage:
 
 
 
-    def create_Awarehouse(id,x,y):
+    def create_Awarehouse(self, id,x,y):
         wh = WORLD.AInitWarehouse()
         wh.id = id
         wh.x = x
@@ -58,7 +58,7 @@ class WorldMessage:
         pack.shipid = shipid
 
         # concurrent issue
-        pack.seqnum = self.get_seqnum(self)
+        pack.seqnum = self.get_seqnum()
         for p in products:
             pack.things.append(p)
         

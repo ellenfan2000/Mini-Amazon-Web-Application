@@ -92,6 +92,7 @@ class UPSMessage:
         command = WORLD.ACommands()
         # waiting for all packages UPS need to be loaded 
         while(len(packages_not_ready) != 0):
+            print("Checking order status ...")
             need_send = False
             temp = copy.deepcopy(packages_not_ready)
             command = WORLD.ACommands()
