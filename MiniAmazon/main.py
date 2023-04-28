@@ -113,18 +113,18 @@ def read_image(path):
         data = f.read()
         return data
     
-def initServer(session, ups_socket, world_socket, world):
+def initServer(session, ups_socket, world_socket, world:WorldMessage, ups:UPSMessage):
     uconnect = UPS.UTAConnect()
     # uconnect.ParseFromString(socketUtils.recv_message(ups_socket))
     uconnect.worldid = 1
 
     connect_to_World(world_socket, uconnect.worldid, session, world)
-    init_world(world_socket, session)
+    init_world(world_socket, session, world)
     session.commit()
-    # UPSMessage.connect_to_UPS(ups_socket, uconnect.worldid)
+    # connect_to_UPS(ups_socket, uconnect.worldid)
 
 
-def handle_world_response(world_socket, world):
+def handle_world_response(world_socket, world:WorldMessage):
     print("Listening to all World response ...")
     while True:
         if(world_socket.fileno() == -1):
@@ -147,7 +147,7 @@ def handle_world_response(world_socket, world):
                 world.handle_APurchaseMore(m)
                 command.acks.append(m.seqnum)
             for m in world_reponse.ready:
-                world.handle_APacked( m)
+                world.handle_APacked(m)
                 command.acks.append(m.seqnum)
             for m in world_reponse.loaded:
                 world.handle_ALoaded(m)
@@ -166,7 +166,7 @@ def handle_world_response(world_socket, world):
             print(e)
 
 
-def handle_ups_response(ups_socket,world_socket,world, ups):
+def handle_ups_response(ups_socket,world_socket,world:WorldMessage, ups:UPSMessage):
     print("Listening to all UPS response ...")
     thread_pool = ThreadPoolExecutor(max_workers=10)
     while True:
@@ -179,13 +179,13 @@ def handle_ups_response(ups_socket,world_socket,world, ups):
             # handle each type of message in response arrived
             for m in ups_reponse.arrive:
                 command.acks.append(m.seqnum)
-                thread_pool.submit(UPSMessage.handle_UTAArrived, world_socket,ups_socket, m, world.seqnum)
+                thread_pool.submit(ups.handle_UTAArrived, world_socket,ups_socket, m, world)
             for m in ups_reponse.todeliver:
                 command.acks.append(m.seqnum)
-                UPSMessage.handle_UTAOutDelivery( m)
+                ups.handle_UTAOutDelivery(m)
             for m in ups_reponse.delivered:
                 command.acks.append(m.seqnum)
-                UPSMessage.handle_Delivery( m)
+                ups.handle_Delivery(m)
             for i in ups_reponse.error:
                 print(i.err)
 
@@ -195,7 +195,7 @@ def handle_ups_response(ups_socket,world_socket,world, ups):
             print(e)
 
 # resend message every 10 seconds
-def handle_resend(world_socket):
+def handle_resend(world_socket, world:WorldMessage):
     while True:
         world.lock_resend.acquire()
         past_messages = world.past_messages
@@ -213,7 +213,7 @@ def handle_resend(world_socket):
         socketUtils.send_message(world_socket, command)
         time.sleep(10)
 
-def handle_front_end(ups_socket,world_socket,session):
+def handle_front_end(ups_socket,world_socket,session, world:WorldMessage, ups:UPSMessage):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -239,7 +239,7 @@ def handle_front_end(ups_socket,world_socket,session):
         d = client_socket.recv(4)
         y = struct.unpack('!I', d)[0]
 
-        response = buy(package_id,x, y, ups_socket,world_socket,session)
+        response = buy(package_id,x, y, ups_socket,world_socket,session, world, ups)
 
         length = struct.pack('!I', len(response))
         client_socket.sendall(length)
@@ -247,7 +247,7 @@ def handle_front_end(ups_socket,world_socket,session):
         client_socket.close()
 
 
-def buy(package_id, x, y, ups_socket, world_socket, session):
+def buy(package_id, x, y, ups_socket, world_socket, session, world:WorldMessage, ups:UPSMessage):
     print("Recieve order from front-end")
     Wcommand = WORLD.ACommands()
     order = session.query(Order).join(Order.product).filter(Order.package == package_id).first()
@@ -269,7 +269,7 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
     # send ATURequestPickUp, 
     print('Send request pick up to UPS')
     Ucommand = UPS.ATUCommands()
-    Ucommand.topickup.append(UPSMessage.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y))
+    Ucommand.topickup.append(ups.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y))
     socketUtils.send_message(ups_socket,Ucommand)
 
     # send Apacking
@@ -298,24 +298,24 @@ if __name__ == '__main__':
     world = WorldMessage(session)
     ups = UPSMessage(session)
 
-    initServer(session, ups_socket, world_socket, world)
+    initServer(session, ups_socket, world_socket, world, ups)
     # # test_database(engine)
 
 
     # a thread waiting for all world response
-    world_thread = threading.Thread(target=handle_world_response, args = (world_socket, session))
+    world_thread = threading.Thread(target=handle_world_response, args = (world_socket, world))
     world_thread.start()
 
     # a thread waiting for all ups response
-    ups_thread = threading.Thread(target=handle_ups_response, args = (ups_socket, world_socket,session))
+    ups_thread = threading.Thread(target=handle_ups_response, args = (ups_socket, world_socket,world, ups))
     ups_thread.start()
 
     # a thread keep resending requests
-    # resend_thread = threading.Thread(target = handle_resend, args = (world_socket, ))
+    # resend_thread = threading.Thread(target = handle_resend, args = (world_socket, world))
     # resend_thread.start()
 
     # main threading handlind all buy request from clients
-    handle_front_end(ups_socket,world_socket,session)
+    handle_front_end(ups_socket,world_socket,session, world, ups)
 
     world_thread.join()
     ups_thread.join()
