@@ -81,7 +81,7 @@ def create_AUErr(err, ori_seqnum):
     auerr.seqnum = get_seqnum()
     return auerr
 
-def handle_UTAArrived(world_socket, ups_socklet, session, message):
+def handle_UTAArrived(world_socket, ups_socket, session, message):
     packages_not_ready = [id for id in message.packageid]
     # waiting for all packages UPS need to be loaded 
     while(len(packages_not_ready) != 0):
@@ -100,12 +100,12 @@ def handle_UTAArrived(world_socket, ups_socklet, session, message):
         if need_send:
             print('Send put on truck to World')
             socketUtils.send_message(world_socket, command)
-        time.sleep(1)
+        time.sleep(5)
 
     Ucommand = UPS.ATUCommands()
     Ucommand.loaded.append(create_ATULoaded(message.truckid,message.packageid))
     print("Send loaded to UPS")
-    socketUtils.send_message(ups_socklet, Ucommand)
+    socketUtils.send_message(ups_socket, Ucommand)
     pass
 
 

@@ -8,7 +8,7 @@ import struct
 import time
 
 
-def connect_to_World(world_socket, wordid, warehouses, session):
+def connect_to_World(world_socket, wordid, session):
     warehouses = [Warehouse(id=0, x=1, y=1),
                   Warehouse(id=1, x=2, y=2),
                   Warehouse(id=2, x=3, y=3)]
@@ -82,8 +82,9 @@ def init_world(world_socket, session):
             print(c.seqnum)
 
         try:
-            world_reponse = WORLD.AResponses()
-            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+            world_reponse = socketUtils.recv_message_from_World(world_socket)
+            # world_reponse = WORLD.AResponses()
+            # world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
 
             # recieved acks, remove saved messages
             WorldMessage.lock_resend.acquire()
@@ -123,11 +124,14 @@ def initServer(session, ups_socket, world_socket):
 def handle_world_response(world_socket, session):
     print("Listening to all World response ...")
     while True:
+        if(world_socket.fileno() == -1):
+            print("Socket connection is closed.")
+            break
         command = WORLD.ACommands()
         world_reponse = WORLD.AResponses()
         try:
-            world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
-
+            # world_reponse.ParseFromString(socketUtils.recv_message(world_socket))
+            world_reponse = socketUtils.recv_message_from_World(world_socket)
             # if recieve ack, remove the command from the resend list
             WorldMessage.lock_resend.acquire()
             for i in world_reponse.acks:
@@ -165,10 +169,12 @@ def handle_ups_response(ups_socket,world_socket,session):
     print("Listening to all UPS response ...")
     while True:
         try:
-            ups_reponse = UPS.UTACommands()
-            ups_reponse.ParseFromString(socketUtils.recv_message(ups_socket))
-            print("Recv message from UPS: " )
-            print(ups_reponse)
+            if(ups_socket.fileno() == -1 or world_socket.fileno() == -1):
+                print("Socket connection is closed.")
+                break
+            # ups_reponse = UPS.UTACommands()
+            # ups_reponse.ParseFromString(socketUtils.recv_message(ups_socket))
+            ups_reponse = socketUtils.recv_message_from_UPS(ups_socket)
             # handle each type of message in response arrived
             for m in ups_reponse.arrive:
                 UPSMessage.handle_UTAArrived(world_socket,ups_socket, session, m)
@@ -213,6 +219,9 @@ def handle_front_end(ups_socket,world_socket,session):
     print(f"Server listening on {hostname}:{port}")
 
     while True:
+        if(ups_socket.fileno() == -1 or world_socket.fileno() == -1):
+            print("Socket connection is closed.")
+            break
         # Accept incoming connection
         client_socket, client_address = sock.accept()
         d = client_socket.recv(4)
@@ -252,15 +261,15 @@ def buy(package_id, x, y, ups_socket, world_socket, session):
     session.commit()
 
     # send ATURequestPickUp, 
+    print('Send request pick up to UPS')
     Ucommand = UPS.ATUCommands()
     Ucommand.topickup.append(UPSMessage.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y))
     socketUtils.send_message(ups_socket,Ucommand)
-    print('Send request pick up to UPS')
 
     # send Apacking
+    print('Send request packing to World ')
     Wcommand.topack.append(WorldMessage.create_APack(order.product.warehouse_id,package_id,WorldMessage.create_Aproduct(order.product.id, order.product.name, order.amount)))
     socketUtils.send_message(world_socket,Wcommand)
-    print('Send request packing to World ')
     return 'Success'
 
 
@@ -272,15 +281,17 @@ if __name__ == '__main__':
     engine = getEngine()
     print("database initialized")
     ups_hostname = "vcm-30469.vm.duke.edu"
-    ups_socket = socketUtils.socket_connect(ups_hostname, 32345)
+    ups_socket = socketUtils.socket_connect(ups_hostname, 32346)
 
     world_hostname = "0.0.0.0"
     world_socket = socketUtils.socket_connect(world_hostname, 23456)
-    initServer(engine, 0, world_socket)
-    # # test_database(engine)
-
+    
     Session = sessionmaker(bind=engine)
     session = Session()
+
+    initServer(session, ups_socket, world_socket)
+    # # test_database(engine)
+
 
     # a thread waiting for all world response
     world_thread = threading.Thread(target=handle_world_response, args = (world_socket, session))
