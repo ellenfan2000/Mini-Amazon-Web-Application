@@ -111,8 +111,6 @@ def product_details(request, id):
             try:
                 response = buy_product(request.user.id, id, form.cleaned_data["amount"], (
                     form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
-                if response == None:
-                    messages.error(request, "Did not success")
                 return redirect("/order_details/"+str(response))
             except Exception as e:
                 messages.error(request, e)

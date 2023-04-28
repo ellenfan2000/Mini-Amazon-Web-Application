@@ -36,6 +36,8 @@ def send_message(sock,message):
 
 def recv_message(sock):
     buf = sock.recv(4)
+    if buf == b'':
+        exit()
     msg_length, hdr_length = _DecodeVarint(buf, 0)
     rsp_buffer = io.BytesIO()
     if hdr_length < 4:
@@ -53,6 +55,8 @@ def recv_message_v2(sock):
     var_int_buff = []
     while True:
         buf = sock.recv(1)
+        if buf == b'':
+            exit()
         var_int_buff += buf
         msg_len, new_pos = _DecodeVarint(var_int_buff, 0)
         if new_pos != 0:

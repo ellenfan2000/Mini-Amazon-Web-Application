@@ -37,7 +37,7 @@ def buy_product(user_id, product_id, amount, address):
     if(message == 'Success'):
         return neworder.id
     else:
-        return None
+        raise ValueError(message)
 
 def set_comments(user_id, order_id, rate, content):
    
