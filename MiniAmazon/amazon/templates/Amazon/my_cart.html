@@ -31,9 +31,8 @@
                     <br>
                     Amount: {{o.amount}} &nbsp;&nbsp; Cost: ${{o.cost}}
                     <br>
-                    <a href="{% url 'delete_cart_order' o.id %}" class="btn btn-outline-success", style="height: 35px">Delete</a>
-                </td>           
-                
+                    <a onclick="return confirm('Are you sure to delect this product?')" href="{% url 'delete_cart_order' o.id %}" class="btn btn-outline-success", style="height: 35px">Delete</a>
+                </td>         
             </tr>
         {% endfor %}
     </table>
