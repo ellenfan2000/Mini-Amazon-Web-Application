@@ -2,11 +2,12 @@
 from database import *
 import socketUtils
 import struct
+import socket
 
 
-package_id = 0
 def buy_product(user_id, product_id, amount, address):
-    sock = socketUtils.socket_connect("vcm-30469.vm.duke.edu",29081)
+    
+    sock = socketUtils.socket_connect(socket.gethostname(),29081)
     # modify databse，generate packageid,
     global package_id
     engine = getEngine()
@@ -14,8 +15,11 @@ def buy_product(user_id, product_id, amount, address):
     session = Session()
 
     # need lock
-    # package_id =session.execute(select(func.max(Order.id))).scalar()+1
-    package_id += 1
+    try:
+       package_id =session.execute(select(func.max(Order.id))).scalar()+1     
+    except:
+        package_id = 1
+    # package_id += 1
     # 
     neworder = Order(buyer = user_id, product_id = product_id, amount = amount, status = 'packing', package = package_id)
     session.add(neworder)
@@ -38,6 +42,35 @@ def buy_product(user_id, product_id, amount, address):
         return neworder.id
     else:
         raise ValueError(message)
+
+def add_to_cart(user_id, product_id, amount):
+    engine = getEngine()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    neworder = Cart(buyer = user_id, product_id = product_id, amount = amount)
+    session.add(neworder)
+    session.commit()
+
+def delete_from_cart(user_id,cart_id):
+    engine = getEngine()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    re = session.query(Cart).filter(Cart.id==cart_id)
+    if(int(user_id)!=re.first().buyer):
+        raise ValueError("You do not have access to this order!")
+    re.delete()
+    session.commit()    
+
+def empty_cart(user_id,address):
+    engine = getEngine()
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    cart_products = session.query(Cart).join(Cart.product).filter(Cart.buyer==int(user_id)).all()
+    for cp in cart_products:
+        buy_product(user_id, cp.product_id,cp.amount,address)
+        delete_from_cart(user_id,cp.id)
+    session.commit()
+
 
 def set_comments(user_id, order_id, rate, content):
    

@@ -15,21 +15,14 @@ def get_recommend():
     global engine
     global session
     
-    orders = session.query(Order.product_id, func.avg(Order.rate).label('avg_rate')).group_by(Order.product_id).order_by(func.avg(Order.rate).desc()).limit(5).subquery()
-    re = session.query(Products.id, Products.name, Products.price,Products.picture,orders.c.avg_rate).join(orders, orders.c.product_id == Products.id).order_by(orders.c.avg_rate.desc()).all()
+    orders = session.query(Order.product_id, func.avg(Order.rate).label('avg_rate')).group_by(Order.product_id).order_by(func.avg(Order.rate).desc()).subquery()
+    re = session.query(Products.id, Products.name, Products.price,Products.picture,orders.c.avg_rate).outerjoin(orders, orders.c.product_id == Products.id).order_by(orders.c.avg_rate.desc().nulls_last()).limit(5).all()
     for p in re:
         print(p.id, p.name, p.avg_rate)
     session.commit()
     # session.close()
     return re
 
-def get_5_products():
-    global engine
-    global session
-    
-    re = session.query(Products.id, Products.name, Products.price).order_by(Products.price).limit(5).all()
-    session.commit()
-    return re
 
 def get_search_res(user_input):
     global engine
@@ -70,6 +63,12 @@ def get_all_orders(user_id):
     session.commit()
     return re
 
+def get_cart_orders(user_id):
+    global engine
+    global session
+    re = session.query(Cart).join(Cart.product).filter(Cart.buyer==int(user_id)).all()
+    session.commit()
+    return re
 
 def get_order_details(order_id):
     global engine
