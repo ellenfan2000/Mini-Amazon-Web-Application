@@ -160,8 +160,12 @@ class UPSMessage:
             return
         self.send_ack(ups_socket, message.seqnum)
 
-        order = session.query(Order).filter(Order.package == message.packageid).first()
+        order = session.query(Order).filter(Order.package == message.packageid).with_for_update().first()
         order.status = 'delivering'
+        session.commit()
+        package = session.query(Package).filter(Package.packageID == message.packageid).with_for_update().first()
+        package.address_x = message.x
+        package.address_y = message.y
         session.commit()
         pass
 
@@ -171,7 +175,7 @@ class UPSMessage:
             return
         self.send_ack(ups_socket, message.seqnum)
 
-        order = session.query(Order).filter(Order.package == message.packageid).first()
+        order = session.query(Order).filter(Order.package == message.packageid).with_for_update().first()
         order.status = 'delivered'
         session.commit()
         pass
