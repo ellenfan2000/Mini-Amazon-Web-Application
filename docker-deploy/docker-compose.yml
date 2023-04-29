@@ -9,6 +9,13 @@ services:
         - POSTGRES_PASSWORD=passw0rd
       volumes:
             - data-volume:/var/lib/postgresql/data
+  backend:
+      build: ./web-app
+      command: /code/initbackend.sh
+      volumes:
+        - ./web-app:/code
+      depends_on:
+        - db
   web-init:
       build: ./web-app
       command: /code/initserver.sh
