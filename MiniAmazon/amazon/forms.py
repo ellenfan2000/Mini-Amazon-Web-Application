@@ -21,6 +21,7 @@ class BuyForm(forms.Form):
     phone_number = forms.CharField(required=False,label="Phone Number")
     address_x = forms.IntegerField(required=True,label="X") 
     address_y = forms.IntegerField(required=True,label="Y") 
+    ups_account = forms.CharField(required=False,label="UPS Account Name")
     
     card_number = forms.CharField(required=True,label="Card Number")    
     expires = forms.CharField(required=True,label="Expires")
@@ -36,7 +37,7 @@ class EmptyCartForm(forms.Form):
     phone_number = forms.CharField(required=False,label="Phone Number")
     address_x = forms.IntegerField(required=True,label="X") 
     address_y = forms.IntegerField(required=True,label="Y") 
-    
+    ups_account = forms.CharField(required=False,label="UPS Account Name")
     card_number = forms.CharField(required=True,label="Card Number")    
     expires = forms.CharField(required=True,label="Expires")
     security_code = forms.CharField(required=True, label="Security Code")

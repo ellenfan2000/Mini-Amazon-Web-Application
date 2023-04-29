@@ -114,7 +114,7 @@ def product_details(request, id):
                         raise ValueError(
                             "The amount should not exceed "+str(details.inventory))
                     response = buy_product(request.user.id, id, form.cleaned_data["amount"], (
-                        form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
+                        form.cleaned_data["address_x"], form.cleaned_data["address_y"]),form.cleaned_data["ups_account"])
                     return redirect("/order_details/"+str(response))
                 except Exception as e:
                     messages.error(request, e)
@@ -152,7 +152,7 @@ def my_cart(request):
         form = EmptyCartForm(request.POST)
         if form.is_valid():
             try:
-                empty_cart(request.user.id, (form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
+                empty_cart(request.user.id, (form.cleaned_data["address_x"], form.cleaned_data["address_y"]),form.cleaned_data["ups_account"])
                 return redirect("/my_orders")
             except Exception as e:
                 messages.error(request, e)
@@ -172,7 +172,8 @@ def delete_cart_order(request,id):
 def my_orders(request):
     orders = get_all_orders(request.user.id)
     res = [{"name": o.product.name, "amount": o.amount, "cost": round(o.amount*o.product.price, 2),
-            "status": o.status, "id": o.id, "img": binary_to_image(o.product.picture)} for o in orders]
+            "status": o.status, "id": o.id, "img": binary_to_image(o.product.picture),
+            "ups_account":o.ups_account} for o in orders]
 
     return render(request,  "Amazon/my_orders.html", {"orders": res})
 
