@@ -1,6 +1,6 @@
 import io
 import socket
-from google.protobuf.internal.decoder import _DecodeVarint
+from google.protobuf.internal.decoder import _DecodeVarint32
 from google.protobuf.internal.encoder import _EncodeVarint
 import threading
 import world_amazon_pb2 as WORLD
@@ -24,21 +24,25 @@ def send_message(sock,message):
     # print(message)
     message_str = message.SerializeToString()
     lock.acquire()
-    _EncodeVarint(sock.send, len(message_str), None)
-    sock.send(message_str)
+    _EncodeVarint(sock.sendall, len(message_str), None)
+    sock.sendall(message_str)
     lock.release()
 
-# def write_message_delimited(socket, msg):
+# def send_message(socket, msg):
+#     # print(len(msg))
+#     global lock
 #     hdr = []
-#     _EncodeVarint(hdr.append, len(msg))
+#     _EncodeVarint(hdr.append, len(msg.SerializeToString()))
+#     lock.acquire()
 #     socket.sendall("".join(hdr))
 #     socket.sendall(msg.SerializeToString())
+#     lock.release()
 
 def recv_message(sock):
     buf = sock.recv(4)
     if buf == b'':
         exit()
-    msg_length, hdr_length = _DecodeVarint(buf, 0)
+    msg_length, hdr_length = _DecodeVarint32(buf, 0)
     rsp_buffer = io.BytesIO()
     if hdr_length < 4:
         rsp_buffer.write(buf[hdr_length:])
@@ -58,7 +62,7 @@ def recv_message_v2(sock):
         if buf == b'':
             exit()
         var_int_buff += buf
-        msg_len, new_pos = _DecodeVarint(var_int_buff, 0)
+        msg_len, new_pos = _DecodeVarint32(var_int_buff, 0)
         if new_pos != 0:
             break
     whole_message = sock.recv(msg_len)

@@ -96,14 +96,25 @@ class UPSMessage:
         return auerr
 
 
+    def send_ack(self, ups_socket, mseqnum):
+            command = UPS.ATUCommands()
+            command.acks.append(mseqnum)
+            UPSMessage.ack_response.append(mseqnum)
+            socketUtils.send_message(ups_socket, command)
+
+
     def handle_UTAArrived(self,engine, world_socket, ups_socket, message, world:WorldMessage):
-        command = UPS.ATUCommands()
-        command.acks.append(message.seqnum)
-        socketUtils.send_message(ups_socket, command)
+        if(message.seqnum in UPSMessage.ack_response):
+            return
+        self.send_ack(ups_socket, message.seqnum)
+
         Session = sessionmaker(bind=engine)
         session = Session()
         packages_not_ready = [id for id in message.packageid]
+        success = []
+        error = []
         command = WORLD.ACommands()
+        Ucommand = UPS.ATUCommands()
         # waiting for all packages UPS need to be loaded 
         while(len(packages_not_ready) != 0):
             break_i = False
@@ -114,71 +125,72 @@ class UPSMessage:
             command = WORLD.ACommands()
             for id in temp:
                 order = session.query(Order).filter(Order.package == id).with_for_update().first()
-                print(order.status)
                 # if packing, waiting for packed
                 # if packed, send putOnTruck
                 if order.status == 'packed':
                     need_send = True
                     command.load.append(world.create_APutOnTruck(message.whid, message.truckid, id))
+                    command.simspeed = 500
                     order.status = 'loading'
                 session.commit()
                 # if loading, waiting for loaed
                 #if loded, waiting for other package to be ready
                 if order.status == 'loaded':
-                    print(1, id)
                     packages_not_ready.remove(id)
-                    print(packages_not_ready)
-                    print(len(packages_not_ready))
-                    if(len(packages_not_ready) == 0):
-                        break_i = True
-                        break
+                    success.append(id)
             
-            if(break_i):
-                break
+                if order.status == 'canceled':
+                    packages_not_ready.remove(id)
+                    error.append(id)
+                    Ucommand.err.append(self.create_AUErr("order error, some cannot be loaded", message.seqnum))
+
             if need_send:
                 print('Send put on truck to World')
                 socketUtils.send_message(world_socket, command)
-            time.sleep(3)
+            time.sleep(1)
 
-        Ucommand = UPS.ATUCommands()
-        Ucommand.loaded.append(self.create_ATULoaded(message.truckid,message.packageid))
+        Ucommand.loaded.append(self.create_ATULoaded(message.truckid,success))
         print("Send loaded to UPS")
         socketUtils.send_message(ups_socket, Ucommand)
         session.close()
         pass
 
-    def handle_UTAOutDelivery(self,session, message,ups_socket, command):
-        command = UPS.ATUCommands()
-        command.acks.append(message.seqnum)
-        socketUtils.send_message(ups_socket, command)
+    def handle_UTAOutDelivery(self,session, message,ups_socket):
+        if(message.seqnum in UPSMessage.ack_response):
+            return
+        self.send_ack(ups_socket, message.seqnum)
+
         order = session.query(Order).filter(Order.package == message.packageid).first()
         order.status = 'delivering'
         session.commit()
-
-        command.acks.append(message.seqnum)
-        UPSMessage.ack_response.append(message.seqnum)
         pass
 
 
-    def handle_Delivery(self,session, message, ups_socket,command):
-        command = UPS.ATUCommands()
-        command.acks.append(message.seqnum)
-        socketUtils.send_message(ups_socket, command)
+    def handle_Delivery(self,session, message, ups_socket):
+        if(message.seqnum in UPSMessage.ack_response):
+            return
+        self.send_ack(ups_socket, message.seqnum)
 
         order = session.query(Order).filter(Order.package == message.packageid).first()
         order.status = 'delivered'
         session.commit()
-
-        command.acks.append(message.seqnum)
-        UPSMessage.ack_response.append(message.seqnum)
         pass
 
+
+    def handle_error(self, message, ups_socket):
+        if(message.seqnum in UPSMessage.ack_response):
+            return
+        self.send_ack(ups_socket, message.seqnum)
+        print(message.err)
+        UPSMessage.lock_resend.acquire()
+        if(message.originseqnum in UPSMessage.past_messages):
+            UPSMessage.past_messages.pop(message.originseqnum)
+        UPSMessage.lock_resend.release()
 
     def resend(self):
         need_resend = False
         UPSMessage.lock_resend.acquire()
         past_messages = UPSMessage.past_messages
-
         command = UPS.ATUCommands()
         for m in past_messages.values():
             if (m.DESCRIPTOR.name == 'ATURequestPickup'):
@@ -187,8 +199,12 @@ class UPSMessage:
             elif (m.DESCRIPTOR.name == 'ATULoaded'):
                 need_resend = True
                 command.loaded.append(m)
+            elif (m.DESCRIPTOR.name == 'AUErr'):
+                need_resend = True
+                command.err.append(m)
         UPSMessage.lock_resend.release()
         if(need_resend):
             print("Resending...")
+            print(past_messages.keys())
             return command
         return None

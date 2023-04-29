@@ -36,6 +36,7 @@ if __name__ == '__main__':
                 arrive.whid = m.whid
                 arrive.seqnum = seqnum + 1
                 response.arrive.append(arrive)
+                response.acks.append(m.seqnum)
                 socketUtils.send_message(amazon, response)
         except Exception as e:
             print(e)

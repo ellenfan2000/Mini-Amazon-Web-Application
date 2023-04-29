@@ -115,10 +115,20 @@ class WorldMessage:
         return query
 
 
+    def send_ack(self, world_socket, mseqnum):
+        command = WORLD.ACommands()
+        command.acks.append(mseqnum)
+        WorldMessage.ack_response.append(mseqnum)
+        socketUtils.send_message(world_socket, command)
+
+
     '''
     when receive ApurchaseMore message from world, add product inventory
     '''
-    def handle_APurchaseMore(self, session, message, command):
+    def handle_APurchaseMore(self, session, message, world_socket):
+        if(message.seqnum in WorldMessage.ack_response):
+            return
+        self.send_ack(world_socket, message.seqnum)
         for p in message.things:
             product = session.query(Products).filter(Products.id == p.id).filter(Products.name == p.description).with_for_update().first()
             product.inventory += p.count
@@ -129,42 +139,51 @@ class WorldMessage:
     '''
     when receive APacked message from world, update product status
     '''
-    def handle_APacked(self, session, message, command):
+    def handle_APacked(self, session, message, world_socket):
+        if(message.seqnum in WorldMessage.ack_response):
+            return
+        self.send_ack(world_socket, message.seqnum)
         order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
         order.status = 'packed'
         session.commit()
 
 
-        command.acks.append(message.seqnum)
-        WorldMessage.ack_response.append(message.seqnum)
-
-
-    def handle_ALoaded(self, session, message, command):
+    def handle_ALoaded(self, session, message, world_socket):
+        if(message.seqnum in WorldMessage.ack_response):
+            return
+        self.send_ack(world_socket, message.seqnum)
         order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
         order.status = 'loaded'
         session.commit()
 
-        command.acks.append(message.seqnum)
-        WorldMessage.ack_response.append(message.seqnum)
 
-
-    def handle_APackage(self, session, message, command):
+    def handle_APackage(self, session, message, world_socket):
+        if(message.seqnum in WorldMessage.ack_response):
+            return
+        self.send_ack(world_socket, message.seqnum)
         order = session.query(Order).filter(Order.package ==  message.packageid).with_for_update().first()
         order.status = message.status
         session.commit()
 
-        command.acks.append(message.seqnum)
-        WorldMessage.ack_response.append(message.seqnum)
-
-    # def handle_error(self, session, message):
-    #     if(message.originseqnum in 
+    def handle_error(self, session, message, world_socket):
+        if(message.seqnum in WorldMessage.ack_response):
+            return
+        self.send_ack(world_socket, message.seqnum)
+        print(message.err)
+        print(message.originseqnum, WorldMessage.past_messages)
+        WorldMessage.lock_resend.acquire()
+        if(message.originseqnum in WorldMessage.past_messages):
+            past = WorldMessage.past_messages.pop(message.originseqnum)
+            if(past.DESCRIPTOR.name == 'APack' or past.DESCRIPTOR.name == 'APutOnTruck'):
+                order = session.query(Order).filter(Order.package == past.shipid).with_for_update().first()
+                order.status = 'canceled'
+                session.commit()
+        WorldMessage.lock_resend.release()
 
     def resend(self):
         need_resend = False
         WorldMessage.lock_resend.acquire()
         past_messages = WorldMessage.past_messages
-
-
         command = WORLD.ACommands()
         for m in past_messages.values():
             if (m.DESCRIPTOR.name == 'APurchaseMore'):
@@ -182,6 +201,7 @@ class WorldMessage:
         WorldMessage.lock_resend.release()
         if(need_resend):
             print("Resending...")
+            print(past_messages.keys())
             return command
         return None
 
