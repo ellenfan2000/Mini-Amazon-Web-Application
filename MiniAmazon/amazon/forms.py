@@ -26,6 +26,21 @@ class BuyForm(forms.Form):
     expires = forms.CharField(required=True,label="Expires")
     security_code = forms.CharField(required=True, label="Security Code")
   
+
+class AddCartForm(forms.Form):
+    amount = forms.IntegerField(initial=1,validators=[MinValueValidator(1)],label="Amount")
+
+class EmptyCartForm(forms.Form):
+    first_name=forms.CharField(required=True, label="First Name")
+    last_name=forms.CharField(required=True, label="Last Name")
+    phone_number = forms.CharField(required=False,label="Phone Number")
+    address_x = forms.IntegerField(required=True,label="X") 
+    address_y = forms.IntegerField(required=True,label="Y") 
+    
+    card_number = forms.CharField(required=True,label="Card Number")    
+    expires = forms.CharField(required=True,label="Expires")
+    security_code = forms.CharField(required=True, label="Security Code")
+
 class FeedbackForm(forms.Form):
     rate = forms.IntegerField(required=False,validators=[MinValueValidator(1),MaxValueValidator(10)],label="How would you rate it? (1 - 10)")
     comment = forms.CharField(required=False, label="Add Your Comments",widget=forms.Textarea(attrs={'rows': 5, 'cols': 50}))

@@ -30,7 +30,7 @@ Home page to show info and recommend
 
 def get_recommentd_dic():
     recommends = get_recommend()
-    re = [{"id": r.id, "name": r.name, "avg_rate": round(r.avg_rate, 2),
+    re = [{"id": r.id, "name": r.name, "avg_rate": round(r.avg_rate, 2) if r.avg_rate else r.avg_rate,
            "price": r.price, "img": binary_to_image(r.picture)} for r in recommends]
     return re
 
@@ -106,18 +106,68 @@ def product_details(request, id):
         return redirect("/")
 
     if request.method == 'POST':
-        form = BuyForm(request.POST)
+        if 'buy_sumbit' in request.POST:
+            form = BuyForm(request.POST)
+            if form.is_valid():
+                try:
+                    if (form.cleaned_data["amount"] > details.inventory):
+                        raise ValueError(
+                            "The amount should not exceed "+str(details.inventory))
+                    response = buy_product(request.user.id, id, form.cleaned_data["amount"], (
+                        form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
+                    return redirect("/order_details/"+str(response))
+                except Exception as e:
+                    messages.error(request, e)
+        else:
+            form2 = AddCartForm(request.POST)
+            if form2.is_valid():
+                try:
+                    if (form2.cleaned_data["amount"] > details.inventory):
+                        raise ValueError(
+                            "The amount should not exceed "+str(details.inventory))
+                    add_to_cart(request.user.id, id,
+                                form2.cleaned_data["amount"])
+                    messages.success(request,"Sucessfully added into shopping cart, please checkout in My Cart")
+                except Exception as e:
+                    messages.error(request, e)
+    form = BuyForm()
+    form2 = AddCartForm()
+    return render(request, "Amazon/product_details.html", 
+                  {"details": details, "form": form, "form2": form2, "comments": comments, "image": img})
+
+@login_required(login_url='/login/')
+def my_cart(request):
+    try:        
+        orders = get_cart_orders(request.user.id)
+        res = [{"name": o.product.name, "amount": o.amount, "cost": round(o.amount*o.product.price, 2),
+                "id": o.id, "img": binary_to_image(o.product.picture),"pro_id":o.product.id} for o in orders]
+        total_cost=0
+        for o in orders:
+            total_cost+=o.amount*o.product.price
+        total_cost=round(total_cost,2)
+    except Exception as e:
+        messages.error(request, e)
+        return redirect("/")        
+    if request.method == 'POST':
+        form = EmptyCartForm(request.POST)
         if form.is_valid():
             try:
-                response = buy_product(request.user.id, id, form.cleaned_data["amount"], (
-                    form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
-                return redirect("/order_details/"+str(response))
+                empty_cart(request.user.id, (form.cleaned_data["address_x"], form.cleaned_data["address_y"]))
+                return redirect("/my_orders")
             except Exception as e:
                 messages.error(request, e)
-    form = BuyForm()
-    return render(request, "Amazon/product_details.html", {"details": details, "form": form, "comments": comments, "image": img})
+    form = EmptyCartForm()
+    return render(request, "Amazon/my_cart.html",{"orders":res,"cost":total_cost,"form":form})
 
-
+@login_required(login_url='/login/')
+def delete_cart_order(request,id):
+    try:
+        delete_from_cart(request.user.id,id)
+        return redirect("/my_cart")
+    except Exception as e:
+        messages.error(request, e)
+        return redirect("/my_cart")
+    
 @login_required(login_url='/login/')
 def my_orders(request):
     orders = get_all_orders(request.user.id)
@@ -156,6 +206,7 @@ def search_results(request):
                  "inventory": p.inventory, "img": binary_to_image(p.picture)} for p in ps]
     recommends = get_recommentd_dic()
     return render(request,  "Amazon/search_results.html", {"query": user_in, "products": products, "recommends": recommends})
+
 
 @login_required(login_url='/login/')
 def all_products(request):

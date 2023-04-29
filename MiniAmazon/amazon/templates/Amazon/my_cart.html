@@ -1,0 +1,95 @@
+{% extends "Amazon/index.html" %}
+{% load crispy_forms_tags %}
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="container-fluid p-0">
+    <div class="alert {{ message.tags }} alert-dismissible" role="alert">
+        {{ message }}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+<h3>My Shopping Cart</h3>
+<div style="display: inline-block; width: 45%; margin-right: 30px;vertical-align: top;">
+    <table class="table table-striped table-hover caption-top">
+        <tr>
+            <th style="width:20%"></th> 
+            <th style="width:20%" ></th> 
+        </tr>   
+        {% for o in orders%}     
+            <tr>
+                <td>
+                    <a href="{% url 'product_details' o.pro_id %}">
+                        <div style="display: flex; justify-content: center;">
+                            <img src="data:;base64,{{o.img}}" style="max-width: 100px; max-height: 100px;">        
+                        </div>  
+                    </a>
+                </td>
+                <td style="word-wrap: break-word;">
+                    <a href="{% url 'product_details' o.pro_id %}"><font color="black">{{o.name}}</font></a>
+                    <br>
+                    Amount: {{o.amount}} &nbsp;&nbsp; Cost: ${{o.cost}}
+                    <br>
+                    <a onclick="return confirm('Are you sure to delect this product?')" href="{% url 'delete_cart_order' o.id %}" class="btn btn-outline-success", style="height: 35px">Delete</a>
+                </td>         
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+<div style="display: inline-block; width: 50%; vertical-align: top; ">
+    <form method="POST" class="form-group">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-4">                               
+                {{ form.first_name|as_crispy_field }}               
+                
+            </div>
+            <div class="col-md-4">                
+                {{ form.last_name|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+                {{ form.phone_number|as_crispy_field }}
+            </div>
+        </div>
+        <br>
+        <b>Address:</b>
+        <div class="row">
+            <div class="col-md-4">                
+                {{ form.address_x|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+                {{ form.address_y|as_crispy_field }}
+            </div>
+        </div>
+        <br>
+        <b>Billing Information:</b>
+        <div class="row">
+            <div class="col-md-4">                               
+                {{ form.card_number|as_crispy_field }}               
+                
+            </div>
+            <div class="col-md-4">                
+                {{ form.expires|as_crispy_field }}
+            </div>
+            <div class="col-md-4">
+                {{ form.security_code|as_crispy_field }}
+            </div>
+        </div>
+        
+        <br><br>
+    
+        <div class="d-grid gap-3 d-md-flex">              
+                <b>Total Cost:</b> ${{cost}}            
+        </div>
+        <br>
+
+        {% if  orders%}
+            <button type="submit" class="btn btn-outline-success">Checkout</button> 
+        {%else%}
+            <h4>Your shopping cart is empty</h4>
+        {% endif %}
+        
+        </form>	
+</div>
+{% endblock %}
