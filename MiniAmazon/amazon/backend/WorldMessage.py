@@ -59,8 +59,6 @@ class WorldMessage:
         # concurrent issue
         pack.seqnum = self.get_seqnum()
         pack.things.extend(products)
-        # for p in products:
-        #     pack.things.append(p)
         
         self.add_message(pack)
         
@@ -78,9 +76,7 @@ class WorldMessage:
         purchase = WORLD.APurchaseMore()
         purchase.whnum = whnum
         purchase.things.extend(products)
-        # for p in products:
-        #     purchase.things.append(p)
-        # concurrent issue
+    
         purchase.seqnum = self.get_seqnum()
         self.add_message(purchase)
         return purchase
@@ -158,5 +154,5 @@ class WorldMessage:
         command.acks.append(message.seqnum)
         WorldMessage.ack_response.append(message.seqnum)
 
-    def handle_error(self, session, message):
-        origin
+    # def handle_error(self, session, message):
+    #     if(message.originseqnum in 
