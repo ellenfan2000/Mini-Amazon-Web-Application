@@ -55,6 +55,10 @@
                 <br> Y: {{details.Package.address_y}}</td>
         </tr>
         <tr>
+            <td>Tracking Number</td>
+            <td>{{details.Order.package}}</td>
+        </tr>
+        <tr>
             <td>UPS Account</td>
             <td>{{details.Order.ups_account}}</td>
         </tr>
@@ -91,7 +95,8 @@
         {% csrf_token %}
         {{ form|crispy}}
         <br />
-        <input type="submit" value="Save" class="btn btn-outline-success">
+        <input type="submit" value="Save" class="btn btn-outline-success">&nbsp;&nbsp;
+        <a href="/my_orders" class = "btn btn-outline-success">Back to My Orders</a>
     </form>
 
 </div>
