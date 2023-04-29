@@ -8,11 +8,10 @@ class WorldMessage:
 
     seqnum = 0
     past_messages = {}
+    ack_response = []
 
-    def __init__(self, session):
-        self.session = session
+    def __init__(self):
         pass
-
 
     def get_seqnum(self):
         WorldMessage.lock_seq.acquire()
@@ -59,8 +58,7 @@ class WorldMessage:
 
         # concurrent issue
         pack.seqnum = self.get_seqnum()
-        for p in products:
-            pack.things.append(p)
+        pack.things.extend(products)
         
         self.add_message(pack)
         
@@ -77,9 +75,8 @@ class WorldMessage:
     def create_APurchaseMore(self, whnum, *products):
         purchase = WORLD.APurchaseMore()
         purchase.whnum = whnum
-        for p in products:
-            purchase.things.append(p)
-        # concurrent issue
+        purchase.things.extend(products)
+    
         purchase.seqnum = self.get_seqnum()
         self.add_message(purchase)
         return purchase
@@ -120,31 +117,42 @@ class WorldMessage:
     '''
     when receive ApurchaseMore message from world, add product inventory
     '''
-    def handle_APurchaseMore(self, message):
+    def handle_APurchaseMore(self, session, message, command):
         for p in message.things:
-            product = self.session.query(Products).filter(Products.id == p.id).filter(Products.name == p.description).with_for_update().first()
+            product = session.query(Products).filter(Products.id == p.id).filter(Products.name == p.description).with_for_update().first()
             product.inventory += p.count
-            self.session.commit()
+            session.commit()
         pass
 
 
     '''
     when receive APacked message from world, update product status
     '''
-    def handle_APacked(self, message):
-        order = self.session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
+    def handle_APacked(self, session, message, command):
+        order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
         order.status = 'packed'
-        self.session.commit()
+        session.commit()
+
+        command.acks.append(message.seqnum)
+        WorldMessage.ack_response.append(message.seqnum)
 
 
-    def handle_ALoaded(self, message):
-        order = self.session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
+    def handle_ALoaded(self, session, message, command):
+        order = session.query(Order).filter(Order.package ==  message.shipid).with_for_update().first()
         order.status = 'loaded'
-        self.session.commit()
+        session.commit()
+
+        command.acks.append(message.seqnum)
+        WorldMessage.ack_response.append(message.seqnum)
 
 
-    def handle_APackage(self, message):
-        order = self.session.query(Order).filter(Order.package ==  message.packageid).with_for_update().first()
+    def handle_APackage(self, session, message, command):
+        order = session.query(Order).filter(Order.package ==  message.packageid).with_for_update().first()
         order.status = message.status
-        self.session.commit()
+        session.commit()
 
+        command.acks.append(message.seqnum)
+        WorldMessage.ack_response.append(message.seqnum)
+
+    # def handle_error(self, session, message):
+    #     if(message.originseqnum in 

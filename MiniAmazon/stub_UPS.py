@@ -24,7 +24,7 @@ if __name__ == '__main__':
         try:
             # command = UPS.ATUCommands()
             message = socketUtils.recv_message_v2(amazon)
-            print(message)
+            # print(message)
             command = UPS.ATUCommands()
             command.ParseFromString(message)
             print(command)
