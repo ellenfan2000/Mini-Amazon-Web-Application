@@ -173,7 +173,7 @@ def my_orders(request):
     orders = get_all_orders(request.user.id)
     res = [{"name": o.product.name, "amount": o.amount, "cost": round(o.amount*o.product.price, 2),
             "status": o.status, "id": o.id, "img": binary_to_image(o.product.picture),
-            "ups_account":o.ups_account} for o in orders]
+            "ups_account":o.ups_account,"package":o.package} for o in orders]
 
     return render(request,  "Amazon/my_orders.html", {"orders": res})
 

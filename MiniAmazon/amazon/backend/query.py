@@ -30,7 +30,6 @@ def get_search_res(user_input):
     products = session.query(Products).filter(
         Products.name.ilike('%' + user_input + '%')).all()
     session.commit()
-    # session.close()
     for p in products:
         print(p.id, p.name, p.category)
     return products
