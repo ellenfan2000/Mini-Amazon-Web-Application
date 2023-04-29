@@ -1,6 +1,7 @@
 import world_amazon_pb2 as WORLD
 from database import *
 import threading
+import socketUtils
 
 class WorldMessage:
     lock_seq = threading.Lock()
@@ -133,6 +134,7 @@ class WorldMessage:
         order.status = 'packed'
         session.commit()
 
+
         command.acks.append(message.seqnum)
         WorldMessage.ack_response.append(message.seqnum)
 
@@ -156,3 +158,30 @@ class WorldMessage:
 
     # def handle_error(self, session, message):
     #     if(message.originseqnum in 
+
+    def resend(self):
+        need_resend = False
+        WorldMessage.lock_resend.acquire()
+        past_messages = WorldMessage.past_messages
+
+
+        command = WORLD.ACommands()
+        for m in past_messages.values():
+            if (m.DESCRIPTOR.name == 'APurchaseMore'):
+                need_resend = True
+                command.buy.append(m)
+            elif (m.DESCRIPTOR.name == 'APack'):
+                need_resend = True
+                command.topack.append(m)
+            elif (m.DESCRIPTOR.name == 'APutOnTruck'):
+                need_resend = True
+                command.load.append(m)
+            elif (m.DESCRIPTOR.name == 'AQuery'):
+                need_resend = True
+                command.queries.append(m)
+        WorldMessage.lock_resend.release()
+        if(need_resend):
+            print("Resending...")
+            return command
+        return None
+

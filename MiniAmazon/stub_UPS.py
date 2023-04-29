@@ -9,7 +9,7 @@ seqnum = 1
 if __name__ == '__main__':
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    port = 32346
+    port = 32345
     hostname = socket.gethostname()
     local_ip = socket.gethostbyname(hostname)
     sock.bind((local_ip, port))
