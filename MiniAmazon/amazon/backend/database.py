@@ -59,6 +59,7 @@ class Order(Base):
     package = Column(Integer, unique=True)
     rate = Column(Float, nullable=True)
     comment = Column(Text)
+    ups_account= Column(Text, nullable=True)
     
 class Package(Base):
     __tablename__ = "package"
@@ -80,6 +81,7 @@ class Cart(Base):
     product_id = Column(Integer, ForeignKey('product.id'))
     product = relationship('Products', backref="cart_product_id")
     amount = Column(Integer)
+    
 
 
 def initDataBase():
