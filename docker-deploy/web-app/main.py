@@ -84,6 +84,8 @@ def init_world(world_socket, session, world:WorldMessage):
         socketUtils.send_message(world_socket, command)
         try:
             world_reponse = socketUtils.recv_message_from_World(world_socket)
+            for m in world_reponse.arrived:
+                world.send_ack(world_socket, m.seqnum)
 
             # recieved acks, remove saved messages
             world.lock_resend.acquire()
@@ -209,7 +211,7 @@ def handle_front_end(ups_socket,world_socket,engine, world:WorldMessage, ups:UPS
     local_ip = socket.gethostbyname(hostname)
     sock.bind((local_ip, port))
     sock.listen()
-    print(f"Server listening on {hostname}:{port}")
+    print(f"Server listening on {local_ip}:{port}")
 
     while True:
         # Accept incoming connection
@@ -280,11 +282,10 @@ if __name__ == '__main__':
     print("database initialized")
     ups_hostname = "vcm-30469.vm.duke.edu"
     # ups_hostname = "vcm-30458.vm.duke.edu"
+    # ups_hostname = "vcm-32421.vm.duke.edu"
     ups_socket = socketUtils.socket_connect(ups_hostname, 32345)
 
-    # world_hostname = "vcm-30458.vm.duke.edu"
-    world_hostname = "vcm-30469.vm.duke.edu"
-
+    world_hostname = ups_hostname
     world_socket = socketUtils.socket_connect(world_hostname, 23456)
     
     Session = sessionmaker(bind=engine)

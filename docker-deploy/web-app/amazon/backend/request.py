@@ -7,7 +7,9 @@ import socket
 
 def buy_product(user_id, product_id, amount, address,ups_account):
     
-    sock = socketUtils.socket_connect(socket.gethostname(),29081)
+    # sock = socketUtils.socket_connect(socket.gethostname(),29081)
+    sock = socketUtils.socket_connect("backend",29081)
+
     # modify databse，generate packageid,
     global package_id
     engine = getEngine()

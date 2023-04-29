@@ -21,7 +21,7 @@ def socket_connect(hostname, port):
 def send_message(sock,message):
     global lock
     print("Send message : " + message.DESCRIPTOR.name)
-    # print(message)
+    print(message)
     message_str = message.SerializeToString()
     lock.acquire()
     _EncodeVarint(sock.sendall, len(message_str), None)

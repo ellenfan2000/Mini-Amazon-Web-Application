@@ -12,6 +12,8 @@ services:
   backend:
       build: ./web-app
       command: /code/initbackend.sh
+      ports:
+       - "29081:29081"
       volumes:
         - ./web-app:/code
       depends_on:
