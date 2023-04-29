@@ -54,23 +54,24 @@ def init_world(world_socket, session, world:WorldMessage):
     men_coat = read_image('amazon/resource/men_coat.jpg')
     facial_scream = read_image('amazon/resource/Facial_scream.jpg')
     dose_serum = read_image('amazon/resource/kiehls-dose-serum.jpg')
-    products = [Products(id=0, name="Kindle Paperwhite (8 GB)", price=139.99, picture=kindle, category="Digital", inventory=500, warehouse_id=0),
+    products = [Products(id=0, name="Kindle Paperwhite (8 GB)", price=139.99, 
+                         picture=kindle, category="Digital", inventory=500, warehouse_id=0,description="Enjoy an improved Kindle reading experience with the latest software updates. Now with easy access to your device Settings and bottom navigation to switch between Home, Library, or the book you are currently reading. A new Library experience helps you find your favorite books with ease, and a new home experience helps you discover your next read by genre and category."),                
                 Products(id=1, name="LG 34\" LED Monitor", price=319.99,
-                         picture=lg, category="Digital", inventory=200, warehouse_id=0),
+                         picture=lg, category="Digital", inventory=200, warehouse_id=0,description="LG 34BK95U-W UltraFine 34\" 21:9 5K 2K (5120 x 2160) Nano IPS LED UltraWide Monitor, 600 cd/m² HDR, Thunderbolt 3 / USB Type-C Inputs Black"),
                 Products(id=2, name="WUZHOU Tulip Plush Toy", price=16.59,
-                         picture=tulip, category="Toy", inventory=269, warehouse_id=1),
+                         picture=tulip, category="Toy", inventory=269, warehouse_id=1, description= "FAVOSTA Cute Succulents Plush Toy, 9.8'' Potted Plant Stuffed Plush Pillow Decoration, Soft Fluffy Succulents Throw Pillow, Plush Toy Gift for Kids Girls (25cm/9.8inch, Khaki)"),
                 Products(id=3, name="Jellycat Amuseables Cloud Plush", price=39.99,
-                         picture=cloud, category="Top", inventory=340, warehouse_id=1),
+                         picture=cloud, category="Top", inventory=340, warehouse_id=1, description = "A-cumulus your necessities in the Amuseable Cloud Bag. This adorable fluffy bag is the perfect piece to round off any outfit with its soft white plush and grey strap. The super-cute face and cordy legs make it a go-to whatever the weather. Strap length 116cm"),
                 Products(id=4, name="Women's Open Front Knit Coat", price=69.99,
-                         picture=women_coat, category="Cloth", inventory=189, warehouse_id=2),
+                         picture=women_coat, category="Cloth", inventory=189, warehouse_id=2, description="Light-colored cardigan features a solid-colored open placket with a loose drape for a casual, effortless style. The length is just below the hips, giving you a smooth, relaxed feel, creating a strong vertical line that makes you look taller and slimmer"),
                 Products(id=5, name="Men's Notch Lapel Double Trench Coat", price=79.99,
-                         picture=men_coat, category="Cloth", inventory=230, warehouse_id=2),
+                         picture=men_coat, category="Cloth", inventory=230, warehouse_id=2, description= "HIGH QUALITY FABRIC - Made from 100% Polyester. This mens trench coat does not just make you look great but also provide exceptional comfort."),
                 Products(id=6, name="Kiehls Ultra Facial Cream", price=78.75,
                          picture=facial_scream, category="SkinCare", inventory=128, warehouse_id=2, description="Discover our #1 face cream formulated with 4.5% Squalane and Glacial Glycoprotein to strengthen your skin's moisture barrier for softer, smoother skin."),
                 Products(id=7, name="Kiehls Micro-Dose Anti-Aging Retinol Serum",
                          price=48.75, picture=dose_serum, category="SkinCare", inventory=218, warehouse_id=2, description="A potent retinol serum in a daily-strength micro-dose that visibly reduces wrinkles, firms skin, evens skin tone, and smoothes texture with minimal discomfort. Paraben-free and fragrance-free."),
                 ]
-
+    
     command = WORLD.ACommands()
 
     for p in products:
