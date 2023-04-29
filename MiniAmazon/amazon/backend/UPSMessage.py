@@ -11,13 +11,12 @@ import threading
 class UPSMessage:
     lock_seq = threading.Lock()
     seqnum = 0
+    ack_response = []
 
-    def __init__(self, session):
-        self.session = session
+    def __init__(self):
+        pass
 
     def get_seqnum(self):
-        UPSMessage.seqnum
-
         UPSMessage.lock_seq.acquire()
         UPSMessage.seqnum += 1
         UPSMessage.lock_seq.release()
@@ -87,24 +86,26 @@ class UPSMessage:
         return auerr
 
 
-    def handle_UTAArrived(self,world_socket, ups_socket, message, world:WorldMessage):
+    def handle_UTAArrived(self,engine, world_socket, ups_socket, message, world:WorldMessage):
+        Session = sessionmaker(bind=engine)
+        session = Session()
         packages_not_ready = [id for id in message.packageid]
         command = WORLD.ACommands()
         # waiting for all packages UPS need to be loaded 
         while(len(packages_not_ready) != 0):
-            print("Checking order status ...")
+            # print("Checking order status ...")
             need_send = False
             temp = copy.deepcopy(packages_not_ready)
             command = WORLD.ACommands()
             for id in temp:
-                order = self.session.query(Order).filter(Order.package == id).with_for_update().first()
+                order = session.query(Order).filter(Order.package == id).with_for_update().first()
                 # if packing, waiting for packed
                 # if packed, send putOnTruck
                 if order.status == 'packed':
                     need_send = True
                     command.load.append(world.create_APutOnTruck(message.whid, message.truckid, id))
                     order.status = 'loading'
-                self.session.commit()
+                session.commit()
                 # if loading, waiting for loaed
                 #if loded, waiting for other package to be ready
                 if order.status == 'loaded':
@@ -118,17 +119,24 @@ class UPSMessage:
         Ucommand.loaded.append(WorldMessage.create_ATULoaded(message.truckid,message.packageid))
         print("Send loaded to UPS")
         socketUtils.send_message(ups_socket, Ucommand)
+        session.close()
         pass
 
-    def handle_UTAOutDelivery(self,message):
-        order = self.session.query(Order).filter(Order.package == message.packageid).first()
+    def handle_UTAOutDelivery(self,session, message, command):
+        order = session.query(Order).filter(Order.package == message.packageid).first()
         order.status = 'delivering'
-        self.session.commit()
+        session.commit()
+
+        command.acks.append(message.seqnum)
+        UPSMessage.ack_response.append(message.seqnum)
         pass
 
 
-    def handle_Delivery(self, message):
-        order = self.session.query(Order).filter(Order.package == message.packageid).first()
+    def handle_Delivery(self,session, message, command):
+        order = session.query(Order).filter(Order.package == message.packageid).first()
         order.status = 'delivered'
-        self.session.commit()
+        session.commit()
+
+        command.acks.append(message.seqnum)
+        UPSMessage.ack_response.append(message.seqnum)
         pass

@@ -2,11 +2,12 @@
 from database import *
 import socketUtils
 import struct
+import socket
 
 
 package_id = 0
 def buy_product(user_id, product_id, amount, address):
-    sock = socketUtils.socket_connect("vcm-30469.vm.duke.edu",29081)
+    sock = socketUtils.socket_connect(socket.gethostname(),29081)
     # modify databse，generate packageid,
     global package_id
     engine = getEngine()
