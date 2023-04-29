@@ -5,7 +5,7 @@ import struct
 import socket
 
 
-def buy_product(user_id, product_id, amount, address):
+def buy_product(user_id, product_id, amount, address,ups_account):
     
     sock = socketUtils.socket_connect(socket.gethostname(),29081)
     # modify databse，generate packageid,
@@ -21,7 +21,7 @@ def buy_product(user_id, product_id, amount, address):
         package_id = 1
     # package_id += 1
     # 
-    neworder = Order(buyer = user_id, product_id = product_id, amount = amount, status = 'packing', package = package_id)
+    neworder = Order(buyer = user_id, product_id = product_id, amount = amount, status = 'packing', package = package_id,ups_account=ups_account)
     session.add(neworder)
     session.commit()
     product = session.query(Products).filter(Products.id == product_id).first()
@@ -61,13 +61,13 @@ def delete_from_cart(user_id,cart_id):
     re.delete()
     session.commit()    
 
-def empty_cart(user_id,address):
+def empty_cart(user_id,address,ups_account):
     engine = getEngine()
     Session = sessionmaker(bind=engine)
     session = Session()
     cart_products = session.query(Cart).join(Cart.product).filter(Cart.buyer==int(user_id)).all()
     for cp in cart_products:
-        buy_product(user_id, cp.product_id,cp.amount,address)
+        buy_product(user_id, cp.product_id,cp.amount,address,ups_account)
         delete_from_cart(user_id,cp.id)
     session.commit()
 
