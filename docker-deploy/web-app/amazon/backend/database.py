@@ -95,7 +95,7 @@ def initDataBase():
 
 def getEngine():
     db_url = f"postgresql+psycopg2://postgres:passw0rd@db:5432/Amazon"
-    # db_url = "postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
+    # db_url = f"postgresql+psycopg2://postgres:passw0rd@127.0.0.1:5432/Amazon"
     engine = create_engine(db_url)
 
     return engine
