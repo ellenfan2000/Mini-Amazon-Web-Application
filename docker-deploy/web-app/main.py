@@ -222,7 +222,13 @@ def handle_front_end(ups_socket,world_socket,engine, world:WorldMessage, ups:UPS
         d = client_socket.recv(4)
         y = struct.unpack('!I', d)[0]
 
-        response = buy(package_id,x, y, ups_socket,world_socket,session, world, ups)
+        d = client_socket.recv(4)
+        length = struct.unpack('!I', d)[0]
+        ups_account = client_socket.recv(length).decode()
+
+        if(ups_account == 'NULL'):
+            ups_account = None
+        response = buy(package_id,x, y, ups_account, ups_socket,world_socket,session, world, ups)
 
         length = struct.pack('!I', len(response))
         client_socket.sendall(length)
@@ -230,30 +236,30 @@ def handle_front_end(ups_socket,world_socket,engine, world:WorldMessage, ups:UPS
         client_socket.close()
 
 
-def buy(package_id, x, y, ups_socket, world_socket, session, world:WorldMessage, ups:UPSMessage):
+def buy(package_id, x, y, ups_account, ups_socket, world_socket, session, world:WorldMessage, ups:UPSMessage):
     print("Recieve order from front-end")
     Wcommand = WORLD.ACommands()
     order = session.query(Order).join(Order.product).filter(Order.package == package_id).first()
 
     # if inventory is not enough, send purchase more to world, return err message to client
-    if(order.product.inventory < order.amount):
+    if(order.product.inventory - order.amount < 5 ):
         Wcommand.buy.append(world.create_APurchaseMore(order.product.warehouse_id, world.create_Aproduct(order.product.id, order.product.name, 1000+2*order.amount)))
-        order.status = 'canceled'
-        session.commit()
         socketUtils.send_message(world_socket, Wcommand)
-        return 'No enough inventory'
+        if (order.product.inventory - order.amount < 0):
+            order.status = 'canceled'
+            session.commit()
+            return 'No enough inventory'
     order.product.inventory -= order.amount
     session.commit()
 
     newpackage = Package(packageID = package_id, warehouse_id = order.product.warehouse_id, address_x = x, address_y = y)
-    
     session.add(newpackage)
     session.commit()
 
     # send ATURequestPickUp, 
     print('Send request pick up to UPS')
     Ucommand = UPS.ATUCommands()
-    Ucommand.topickup.append(ups.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y))
+    Ucommand.topickup.append(ups.create_RequestPickUp(order.product.name, package_id, order.product.warehouse_id, x,y, ups_account))
     socketUtils.send_message(ups_socket,Ucommand)
 
     # send Apacking
@@ -271,12 +277,12 @@ if __name__ == '__main__':
     engine = initDataBase()
     # engine = getEngine()
     print("database initialized")
-    ups_hostname = socket.gethostname()
+    ups_hostname = "vcm-30469.vm.duke.edu"
     # ups_hostname = "vcm-30458.vm.duke.edu"
     ups_socket = socketUtils.socket_connect(ups_hostname, 32345)
 
     # world_hostname = "vcm-30458.vm.duke.edu"
-    world_hostname = socket.gethostname()
+    world_hostname = "vcm-30469.vm.duke.edu"
 
     world_socket = socketUtils.socket_connect(world_hostname, 23456)
     

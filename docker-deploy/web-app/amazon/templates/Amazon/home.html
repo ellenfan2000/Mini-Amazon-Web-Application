@@ -1,0 +1,32 @@
+{% extends "Amazon/index.html" %}
+{% block content %}
+{% if messages %}
+{% for message in messages %}
+<div class="container-fluid p-0">
+    <div class="alert {{ message.tags }} alert-dismissible" role="alert">
+        {{ message }}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{%if user.is_authenticated%}
+<div class="col-8">
+    
+    
+    <p>Welcome, {{user.username}} ! We are happy to Serve you!</p>
+    <br>
+    <caption><h3>Recommended Products</h3></caption>         
+
+    {% include 'Amazon/show_recomment.html' %}
+    
+    {%else%}
+    <h3>
+        <p>Welcome to Mini Amazon!</p>
+    </h3>
+    <p>We are happy to Serve you!</p>
+    <p>If you already have an account <a href="/login">Log in here</a>.</p>
+    <p>Or, <a href="/register">Register a new account here</a>.</p>
+    {%endif%}
+</div>
+
+{% endblock %}
